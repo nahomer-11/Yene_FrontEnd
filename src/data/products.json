@@ -1,0 +1,131 @@
+
+{
+  "products": [
+    {
+      "id": "1",
+      "name": "Yene Classic Runner",
+      "price": 2999,
+      "description": "A timeless running shoe designed for both performance and style. Features our signature cushioning technology and breathable mesh upper for all-day comfort and support during your runs.",
+      "images": [
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff",
+        "https://images.unsplash.com/photo-1608231387042-66d1773070a5"
+      ],
+      "colors": ["Black", "White", "Red"],
+      "sizes": [38, 39, 40, 41, 42, 43, 44],
+      "category": "Running",
+      "stock": 50
+    },
+    {
+      "id": "2",
+      "name": "Yene Comfort Walker",
+      "price": 2499,
+      "description": "Experience ultimate comfort with our premium walking shoes. Perfect for daily wear and long walks with extra cushioning and arch support for all-day comfort.",
+      "images": [
+        "https://images.unsplash.com/photo-1549298916-b41d501d3772",
+        "https://images.unsplash.com/photo-1560769629-975ec94e6a86"
+      ],
+      "colors": ["Brown", "Black", "Gray"],
+      "sizes": [38, 39, 40, 41, 42, 43, 44],
+      "category": "Casual",
+      "stock": 35
+    },
+    {
+      "id": "3", 
+      "name": "Yene Sport Elite",
+      "price": 3499,
+      "description": "Professional-grade athletic shoes designed for serious athletes. Features advanced stability and support systems with responsive cushioning for optimal performance.",
+      "images": [
+        "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa",
+        "https://images.unsplash.com/photo-1608231387042-66d1773070a5"
+      ],
+      "colors": ["Red", "Black", "Blue"],
+      "sizes": [39, 40, 41, 42, 43, 44, 45],
+      "category": "Sports",
+      "stock": 25
+    },
+    {
+      "id": "4",
+      "name": "Yene Urban Sneaker",
+      "price": 3299,
+      "description": "Stylish urban sneakers that combine fashion and comfort. Perfect for casual outings and everyday wear with premium materials and modern design.",
+      "images": [
+        "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2",
+        "https://images.unsplash.com/photo-1600269452121-4f2416e55c28"
+      ],
+      "colors": ["White", "Black", "Blue", "Gray"],
+      "sizes": [38, 39, 40, 41, 42, 43],
+      "category": "Sneakers",
+      "stock": 42
+    },
+    {
+      "id": "5",
+      "name": "Yene Business Oxford",
+      "price": 3899,
+      "description": "Premium leather oxfords designed for business professionals. Handcrafted with genuine leather uppers and comfortable cushioned insoles for all-day wear.",
+      "images": [
+        "https://images.unsplash.com/photo-1549298916-f52d724204b4",
+        "https://images.unsplash.com/photo-1613237675268-19886dce2b4a"
+      ],
+      "colors": ["Black", "Brown"],
+      "sizes": [39, 40, 41, 42, 43, 44, 45],
+      "category": "Formal",
+      "stock": 18
+    },
+    {
+      "id": "6",
+      "name": "Yene Hiking Boot",
+      "price": 4299,
+      "description": "Rugged hiking boots built for challenging terrains. Features waterproof construction, superior grip outsole, and ankle support for your outdoor adventures.",
+      "images": [
+        "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa",
+        "https://images.unsplash.com/photo-1460066122679-741dd3c3e2a6"
+      ],
+      "colors": ["Brown", "Black", "Green"],
+      "sizes": [39, 40, 41, 42, 43, 44, 45, 46],
+      "category": "Boots",
+      "stock": 15
+    },
+    {
+      "id": "7",
+      "name": "Yene Summer Sandal",
+      "price": 1799,
+      "description": "Comfortable and stylish sandals perfect for warm weather. Made with soft straps and cushioned footbeds for all-day comfort during summer adventures.",
+      "images": [
+        "https://images.unsplash.com/photo-1603808033192-082d6919d3e1",
+        "https://images.unsplash.com/photo-1562273138-f46be4ebdf33"
+      ],
+      "colors": ["Brown", "Black", "Blue"],
+      "sizes": [38, 39, 40, 41, 42, 43, 44],
+      "category": "Sandals",
+      "stock": 30
+    },
+    {
+      "id": "8",
+      "name": "Yene Performance Runner",
+      "price": 3999,
+      "description": "High-performance running shoes designed for marathons and serious runners. Features advanced energy return technology and lightweight construction.",
+      "images": [
+        "https://images.unsplash.com/photo-1542291026-7eec264c27ff",
+        "https://images.unsplash.com/photo-1608231387042-66d1773070a5"
+      ],
+      "colors": ["Blue", "Black", "Red", "White"],
+      "sizes": [39, 40, 41, 42, 43, 44, 45],
+      "category": "Running",
+      "stock": 22
+    },
+    {
+      "id": "9",
+      "name": "Yene Classic Loafer",
+      "price": 3299,
+      "description": "Elegant loafers crafted from premium materials for a timeless look. Perfect for business casual settings with comfortable cushioning for all-day wear.",
+      "images": [
+        "https://images.unsplash.com/photo-1533867617858-e7b97e060509",
+        "https://images.unsplash.com/photo-1549298916-f52d724204b4"
+      ],
+      "colors": ["Brown", "Black"],
+      "sizes": [39, 40, 41, 42, 43, 44, 45],
+      "category": "Formal",
+      "stock": 12
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+
+{
+  "orders": [
+    {
+      "id": "1",
+      "userId": "user123",
+      "items": [
+        {
+          "id": "1",
+          "name": "yene Classic Runner",
+          "price": 2999,
+          "quantity": 2,
+          "selectedColor": "Black",
+          "selectedSize": 42
+        }
+      ],
+      "total": 5998,
+      "status": "pending",
+      "paymentAmount": 5998,
+      "createdAt": "2024-04-18T10:30:00Z"
+    },
+    {
+      "id": "2",
+      "userId": "user456",
+      "items": [
+        {
+          "id": "2",
+          "name": "yene Comfort Walker",
+          "price": 2499,
+          "quantity": 1,
+          "selectedColor": "Brown",
+          "selectedSize": 41
+        }
+      ],
+      "total": 2499,
+      "status": "completed",
+      "paymentAmount": 2499,
+      "createdAt": "2024-04-17T15:45:00Z"
+    }
+  ]
+}
