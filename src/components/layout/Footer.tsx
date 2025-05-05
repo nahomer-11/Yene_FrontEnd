@@ -25,26 +25,13 @@ export const Footer = () => {
                   Products
                 </Link>
               </li>
-              <li>
-                <Link to="/about" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  About
-                </Link>
-              </li>
-              <li>
-                <Link to="/contact" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  Contact
-                </Link>
-              </li>
             </ul>
           </div>
           
           <div>
             <h3 className="font-semibold text-sm mb-2">Contact</h3>
             <address className="text-xs text-muted-foreground not-italic">
-              <p>123 Main Street</p>
-              <p>Addis Ababa, Ethiopia</p>
-              <p className="mt-1">Email: info@yene.com</p>
-              <p>Phone: +251 912 345 678</p>
+              <p>Addis Ababa, Ethiopia -- Email: info@yene.com --- +251941936413</p>
             </address>
           </div>
         </div>
