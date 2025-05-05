@@ -60,7 +60,7 @@ const Products = () => {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [productsPerPage] = useState(9);
+  const [productsPerPage] = useState(6);
 
   // Fetch products from API
   useEffect(() => {
@@ -191,11 +191,6 @@ const Products = () => {
     });
   };
 
-  // Calculate the price range of all products
-  const allPrices = products.map(p => parseFloat(p.base_price) || 0);
-  const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
-  const maxPrice = allPrices.length > 0 ? Math.max(...allPrices) : 5000;
-
   // Helper function to map color names to CSS colors
   const getColorValue = (color: string) => {
     const colorMap: Record<string, string> = {
@@ -243,11 +238,9 @@ const Products = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Navbar />
-      <div className="container max-w-6xl mx-auto px-4 py-6 flex-grow">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
-            
-          </div>
+      <div className="container max-w-6xl mx-auto px-4 py-4 sm:py-6 flex-grow">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
           
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
@@ -276,7 +269,7 @@ const Products = () => {
                     <Filter className="h-4 w-4" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[300px] sm:w-[400px] overflow-y-auto">
+                <SheetContent side="left" className="w-full xs:w-[300px] sm:w-[400px] overflow-y-auto">
                   <div className="py-4 space-y-6">
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium flex items-center">
@@ -361,7 +354,7 @@ const Products = () => {
         {(selectedCategories.length > 0 || selectedColors.length > 0) && (
           <div className="flex flex-wrap gap-2 mb-4">
             {selectedCategories.map(category => (
-              <div key={`filter-${category}`} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-sm">
+              <div key={`filter-${category}`} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs sm:text-sm">
                 {category}
                 <button onClick={() => toggleCategory(category)}>
                   <X className="h-3 w-3" />
@@ -369,7 +362,7 @@ const Products = () => {
               </div>
             ))}
             {selectedColors.map(color => (
-              <div key={`filter-${color}`} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-sm">
+              <div key={`filter-${color}`} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs sm:text-sm">
                 <span 
                   className="w-2 h-2 rounded-full mr-1" 
                   style={{ backgroundColor: getColorValue(color) }}
@@ -383,7 +376,7 @@ const Products = () => {
             {(selectedCategories.length > 0 || selectedColors.length > 0) && (
               <button 
                 onClick={clearFilters}
-                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1"
+                className="text-xs sm:text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1"
               >
                 Clear all
               </button>
@@ -391,7 +384,7 @@ const Products = () => {
           </div>
         )}
         
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Desktop Filters Sidebar */}
           {isFiltersVisible && (
             <div className="hidden md:block lg:col-span-1">
@@ -453,28 +446,28 @@ const Products = () => {
           )}
           
           {/* Products Grid */}
-          <div className={`grid gap-6 ${isFiltersVisible ? 'lg:col-span-3' : 'lg:col-span-4'} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`}>
+          <div className={`grid gap-4 sm:gap-6 ${isFiltersVisible ? 'lg:col-span-3' : 'lg:col-span-4'} grid-cols-2 sm:grid-cols-2 md:grid-cols-3`}>
             {isLoading ? (
               // Loading skeleton
               Array(6).fill(0).map((_, index) => (
                 <Card key={`skeleton-${index}`} className="overflow-hidden animate-pulse">
                   <div className="aspect-square bg-gray-200"></div>
-                  <CardHeader className="p-4 pb-2">
-                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                    <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                  <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                    <div className="h-3 sm:h-4 bg-gray-200 rounded w-1/2 mb-1 sm:mb-2"></div>
+                    <div className="h-4 sm:h-6 bg-gray-200 rounded w-3/4"></div>
                   </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="h-3 bg-gray-100 rounded w-full mb-2"></div>
-                    <div className="h-3 bg-gray-100 rounded w-2/3"></div>
+                  <CardContent className="p-3 sm:p-4 pt-0">
+                    <div className="h-2 sm:h-3 bg-gray-100 rounded w-full mb-1 sm:mb-2"></div>
+                    <div className="h-2 sm:h-3 bg-gray-100 rounded w-2/3"></div>
                   </CardContent>
-                  <CardFooter className="p-4 pt-0">
-                    <div className="h-10 w-10 bg-gray-200 rounded"></div>
+                  <CardFooter className="p-3 sm:p-4 pt-0">
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 bg-gray-200 rounded"></div>
                   </CardFooter>
                 </Card>
               ))
             ) : error ? (
-              <div className="col-span-full text-center py-12">
-                <h3 className="text-xl font-semibold">Error loading products</h3>
+              <div className="col-span-full text-center py-8 sm:py-12">
+                <h3 className="text-lg sm:text-xl font-semibold">Error loading products</h3>
                 <p className="text-muted-foreground mt-2">{error}</p>
                 <Button 
                   onClick={() => window.location.reload()}
@@ -494,55 +487,54 @@ const Products = () => {
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       />
-                      {/* Product status would go here if we had stock info */}
                     </div>
                     
-                    <CardHeader className="p-4 pb-2">
+                    <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             {product.variants && product.variants[0] ? product.variants[0].size : 'All Sizes'}
                           </p>
-                          <CardTitle className="text-lg mt-1">{product.name}</CardTitle>
+                          <CardTitle className="text-sm sm:text-base md:text-lg mt-0.5 sm:mt-1">{product.name}</CardTitle>
                         </div>
-                        <p className="font-bold">{parseFloat(product.base_price).toLocaleString()} ETB</p>
+                        <p className="text-xs sm:text-sm font-bold">{parseFloat(product.base_price).toLocaleString()} ETB</p>
                       </div>
                     </CardHeader>
                     
-                    <CardContent className="p-4 pt-0 flex-grow">
-                      <p className="text-muted-foreground text-sm line-clamp-2">{product.description}</p>
-                      <div className="mt-3 flex items-center gap-1">
+                    <CardContent className="p-3 sm:p-4 pt-0 flex-grow">
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                      <div className="mt-2 sm:mt-3 flex items-center gap-1">
                         {product.variants && product.variants.slice(0, 4).map((variant) => (
                           <span 
                             key={`${product.id}-${variant.color}`}
-                            className={`block w-3 h-3 rounded-full border ${variant.color === 'White' ? 'border-gray-300' : ''}`}
+                            className={`block w-2 h-2 sm:w-3 sm:h-3 rounded-full border ${variant.color === 'White' ? 'border-gray-300' : ''}`}
                             style={{ backgroundColor: getColorValue(variant.color) }}
                             title={variant.color}
                           />
                         ))}
                         {product.variants && product.variants.length > 4 && (
-                          <span className="text-xs text-muted-foreground">+{product.variants.length - 4}</span>
+                          <span className="text-[10px] sm:text-xs text-muted-foreground">+{product.variants.length - 4}</span>
                         )}
                       </div>
                     </CardContent>
                   </Link>
 
-                  <CardFooter className="p-4 pt-0 flex gap-2">
+                  <CardFooter className="p-3 sm:p-4 pt-0 flex gap-2">
                     <Button
                       onClick={() => handleAddToCart(product)}
                       variant="outline"
                       size="icon"
-                      className="h-10 w-10"
+                      className="h-8 w-8 sm:h-10 sm:w-10"
                     >
-                      <ShoppingCart className="h-4 w-4" />
+                      <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </CardFooter>
                 </Card>
               ))
             ) : (
-              <div className="col-span-full text-center py-12">
-                <h3 className="text-xl font-semibold">No products found</h3>
-                <p className="text-muted-foreground mt-2">Try changing your search or filter criteria</p>
+              <div className="col-span-full text-center py-8 sm:py-12">
+                <h3 className="text-lg sm:text-xl font-semibold">No products found</h3>
+                <p className="text-sm sm:text-base text-muted-foreground mt-2">Try changing your search or filter criteria</p>
                 <Button 
                   onClick={clearFilters}
                   variant="outline" 
@@ -557,7 +549,7 @@ const Products = () => {
         
         {/* Pagination */}
         {filteredProducts.length > 0 && (
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
