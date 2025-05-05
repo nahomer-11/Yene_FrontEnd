@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Base API configuration
-const API_URL = 'http://127.0.0.1:8000/yene_api';
+const API_URL = 'https://yenebackend.vercel.app/yene_api';
 
 // Create main axios instance
 const apiClient = axios.create({
