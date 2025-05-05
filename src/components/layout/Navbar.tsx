@@ -33,24 +33,26 @@ export const Navbar = () => {
   
   return (
 <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-  <div className="container flex h-16 items-center justify-between">
-  <Link to="/" className="flex items-center space-x-2">
-  <span className="text-2xl font-bold">Yene Closet</span>
-</Link>
+  <div className="container flex flex-col md:flex-row md:items-center md:justify-between gap-2 py-2">
+    
+    {/* Left: Logo */}
+    <div className="flex items-center justify-between w-full md:w-auto">
+      <Link to="/" className="flex items-center space-x-2">
+        <span className="text-2xl font-bold">Yene Closet</span>
+      </Link>
+    </div>
 
+    {/* Center: Announcement */}
+    <div className="text-base text-yellow-500 font-semibold flex flex-wrap items-center justify-center text-center animate-pulse-glow px-2">
+      <span className="whitespace-normal break-words mr-2">💸 50% ቅድመ ክፋያ ከፈለዉ</span>
+      <span className="whitespace-normal break-words">🚚 በ10 ቀናት ውስጥ እናደርሳለን.</span>
+    </div>
 
-    {/* Text goes here, with animation */}
-    <div className="text-lg text-yellow-500 font-semibold flex items-center space-x-1 mr-4 animate-pulse-glow">
-  <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 💸 50% ቅድመ ክፋያ ከፈለዉ</span> 
-  <span>🚚 በ10 ቀናት ውስጥ እናደርሳለን.</span>
-</div>
-
-
-
-    <div className="flex items-center space-x-4">
-    <Link to="/products">
-  <Button variant="ghost" className="text-lg">Products</Button>
-</Link>
+    {/* Right: Actions */}
+    <div className="flex items-center justify-end space-x-4 w-full md:w-auto">
+      <Link to="/products">
+        <Button variant="ghost" className="text-lg">Products</Button>
+      </Link>
 
       <Link to="/cart" className="relative">
         <Button variant="ghost" size="icon">
@@ -62,7 +64,9 @@ export const Navbar = () => {
           )}
         </Button>
       </Link>
+
       <ThemeToggle />
+
       {isLoggedIn ? (
         <Link to="/account">
           <Button variant="ghost" size="icon">
@@ -75,6 +79,7 @@ export const Navbar = () => {
         </Link>
       )}
     </div>
+
   </div>
 </nav>
 
