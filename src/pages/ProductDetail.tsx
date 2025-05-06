@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { productService, Product, ProductVariant } from '@/api/yene_api';
 import { Button } from '@/components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from "@/components/ui/input";
@@ -17,10 +15,14 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string>('');
-  const [selectedSize, setSelectedSize] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [availableSizes, setAvailableSizes] = useState<string[]>([]);
+  const [parsedColors, setParsedColors] = useState<string[]>([]);
+  const [parsedSizes, setParsedSizes] = useState<string[]>([]);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
@@ -28,54 +30,145 @@ const ProductDetail = () => {
     enabled: !!id,
   });
 
-  // Process color and size options when product data loads
+  // Parse comma-separated colors and sizes when product data loads
   useEffect(() => {
     if (product && product.variants.length > 0) {
-      // Get the first variant
-      const firstVariant = product.variants[0];
+      // Parse all colors from all variants
+      const allColorsFromVariants: string[] = [];
+      product.variants.forEach(variant => {
+        const variantColors = variant.color.split(',').map(c => c.trim());
+        allColorsFromVariants.push(...variantColors);
+      });
       
-      // Set the first variant ID
-      setSelectedVariantId(firstVariant.id);
+      // Get unique colors
+      const uniqueColors = Array.from(new Set(allColorsFromVariants));
+      setParsedColors(uniqueColors);
       
-      // Get first color
-      const colors = firstVariant.color.split(',').map(c => c.trim());
-      if (colors.length > 0) {
-        setSelectedColor(colors[0]);
+      // Parse all sizes from all variants
+      const allSizesFromVariants: string[] = [];
+      product.variants.forEach(variant => {
+        const variantSizes = variant.size.split(',').map(s => s.trim());
+        allSizesFromVariants.push(...variantSizes);
+      });
+      
+      // Get unique sizes
+      const uniqueSizes = Array.from(new Set(allSizesFromVariants));
+      setParsedSizes(uniqueSizes);
+      
+      // Set default selected color
+      if (uniqueColors.length > 0 && !selectedColor) {
+        setSelectedColor(uniqueColors[0]);
+        // Set available sizes for this color
+        updateAvailableSizes(uniqueColors[0]);
       }
-      
-      // Get first size
-      const sizes = firstVariant.size.split(',').map(s => s.trim());
-      if (sizes.length > 0) {
+
+      // Set default variant if no variant is selected
+      if (!selectedVariantId) {
+        setSelectedVariantId(product.variants[0].id);
+      }
+    }
+  }, [product, selectedColor]);
+
+  // Update available sizes when color changes
+  const updateAvailableSizes = (color: string) => {
+    if (!product) return;
+    
+    const sizes: string[] = [];
+    product.variants.forEach(variant => {
+      const variantColors = variant.color.split(',').map(c => c.trim());
+      if (variantColors.includes(color)) {
+        const variantSizes = variant.size.split(',').map(s => s.trim());
+        sizes.push(...variantSizes);
+      }
+    });
+    
+    setAvailableSizes(Array.from(new Set(sizes)));
+    
+    // Select first available size if current size is not available
+    if (sizes.length > 0) {
+      if (!selectedSize || !sizes.includes(selectedSize)) {
         setSelectedSize(sizes[0]);
       }
+    } else {
+      setSelectedSize(null);
     }
-  }, [product]);
+  };
 
-  // Calculate total price based on base price, variant's extra price, and quantity
+  // Update variant ID when color or size changes
   useEffect(() => {
-    if (product) {
-      const basePrice = parseFloat(product.base_price);
-      const extraPrice = selectedVariantId 
-        ? parseFloat(product.variants.find(v => v.id === selectedVariantId)?.extra_price || '0') 
-        : 0;
+    if (!product || !selectedColor) return;
+    
+    // Find variant that matches selected color and size
+    let foundVariant = false;
+    for (const variant of product.variants) {
+      const variantColors = variant.color.split(',').map(c => c.trim());
+      const variantSizes = variant.size.split(',').map(s => s.trim());
       
-      setTotalPrice((basePrice + extraPrice) * quantity);
+      if (variantColors.includes(selectedColor) && 
+          (!selectedSize || variantSizes.includes(selectedSize))) {
+        setSelectedVariantId(variant.id);
+        foundVariant = true;
+        break;
+      }
     }
-  }, [product, selectedVariantId, quantity]);
+    
+    // If no exact match, just use the variant that matches the color
+    if (!foundVariant && product.variants.length > 0) {
+      for (const variant of product.variants) {
+        const variantColors = variant.color.split(',').map(c => c.trim());
+        if (variantColors.includes(selectedColor)) {
+          setSelectedVariantId(variant.id);
+          break;
+        }
+      }
+    }
+  }, [selectedColor, selectedSize, product]);
+
+  // Find the currently selected variant
+  const selectedVariant = product?.variants.find(
+    (variant: ProductVariant) => variant.id === selectedVariantId
+  );
+
+  // Calculate total price based on base price and variant's extra price
+  const calculateTotalPrice = () => {
+    if (!product) return 0;
+    
+    let price = parseFloat(product.base_price);
+    
+    if (selectedVariant) {
+      price += parseFloat(selectedVariant.extra_price || '0');
+    }
+    
+    return price * quantity;
+  };
+
+  // Update total price whenever quantity or selected variant changes
+  useEffect(() => {
+    setTotalPrice(calculateTotalPrice());
+  }, [quantity, selectedVariantId, product]);
 
   const handleAddToCart = () => {
-    if (!selectedVariantId || !product) {
-      toast.error('Please select options first');
-      return;
-    }
+    if (!product) return;
     
     try {
       // Get existing cart from localStorage
       const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
       
+      // For products with variants, require selection
+      if (product.variants.length > 0 && !selectedVariantId) {
+        toast.error('Please select color and size options');
+        return;
+      }
+      
       // Check if this variant is already in cart
       const existingItemIndex = cartItems.findIndex(
-        (item: any) => item.productVariantId === selectedVariantId
+        (item: any) => {
+          if (selectedVariantId) {
+            return item.productVariantId === selectedVariantId;
+          } else {
+            return item.productId === product.id;
+          }
+        }
       );
       
       if (existingItemIndex !== -1) {
@@ -86,12 +179,12 @@ const ProductDetail = () => {
         const newItem = {
           id: Date.now().toString(),
           productId: product.id,
-          productVariantId: selectedVariantId,
+          productVariantId: selectedVariantId, 
           name: product.name,
-          price: totalPrice / quantity, // Store unit price
+          price: calculateTotalPrice() / quantity, // Store unit price
           quantity: quantity,
-          selectedColor: selectedColor,
-          selectedSize: selectedSize,
+          selectedColor: selectedColor || '',
+          selectedSize: selectedSize || '',
           image: product.image_url || '/placeholder.svg'
         };
         cartItems.push(newItem);
@@ -143,35 +236,6 @@ const ProductDetail = () => {
     );
   }
 
-  // Extract colors and sizes from the variants
-  const allColors: string[] = [];
-  const allSizes: string[] = [];
-
-  product.variants.forEach(variant => {
-    // Split colors by comma and trim whitespace
-    const colors = variant.color.split(',').map(c => c.trim());
-    colors.forEach(color => {
-      if (!allColors.includes(color)) {
-        allColors.push(color);
-      }
-    });
-
-    // Split sizes by comma and trim whitespace
-    const sizes = variant.size.split(',').map(s => s.trim());
-    sizes.forEach(size => {
-      if (!allSizes.includes(size)) {
-        allSizes.push(size);
-      }
-    });
-  });
-
-  const colorMap: Record<string, string> = {
-    'Brown': '#8B4513',
-    'black': '#000000',
-    'purple': '#800080',
-    // Add more color mappings as needed
-  };
-
   return (
     <div className="container mx-auto py-4 px-3 sm:px-4 max-w-screen-xl">
       <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 p-1 h-auto sm:p-2 sm:h-10">
@@ -182,12 +246,44 @@ const ProductDetail = () => {
         <div className="space-y-3">
           {/* Main Product Image */}
           <div className="aspect-square overflow-hidden rounded-lg border bg-background">
-            <img
-              src={product.image_url || '/placeholder.svg'}
-              alt={product.name}
-              className="h-full w-full object-cover"
-            />
+            {selectedVariant && selectedVariant.images && selectedVariant.images.length > 0 ? (
+              <img
+                src={selectedVariant.images[currentImageIndex]?.image_url || '/placeholder.svg'}
+                alt={`${product.name} - ${selectedColor} ${selectedSize}`}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <img
+                src={product.image_url || '/placeholder.svg'}
+                alt={product.name}
+                className="h-full w-full object-cover"
+              />
+            )}
           </div>
+          
+          {/* Image Thumbnails - Mobile Friendly Scroll */}
+          {selectedVariant && selectedVariant.images && selectedVariant.images.length > 1 && (
+            <div className="overflow-x-auto pb-2">
+              <div className="flex gap-2">
+                {selectedVariant.images.map((image, index) => (
+                  <div 
+                    key={index}
+                    className={cn(
+                      "flex-shrink-0 w-14 h-14 rounded-md overflow-hidden cursor-pointer border",
+                      currentImageIndex === index ? "border-primary ring-1 ring-primary" : "border-muted"
+                    )}
+                    onClick={() => setCurrentImageIndex(index)}
+                  >
+                    <img
+                      src={image.image_url || '/placeholder.svg'}
+                      alt={`${product.name} - View ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         
         <div>
@@ -201,28 +297,26 @@ const ProductDetail = () => {
           <Card className="mb-4">
             <CardContent className="p-3 sm:p-4 space-y-4">
               {/* Color Selection - Mobile Friendly */}
-              {allColors.length > 0 && (
+              {parsedColors.length > 0 && (
                 <div>
                   <Label className="text-sm font-medium mb-1 block">Color</Label>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {allColors.map((color) => (
+                    {parsedColors.map((color) => (
                       <button
                         key={color}
                         type="button"
                         className={cn(
-                          "px-3 py-1.5 text-sm rounded-full border transition-colors flex items-center gap-1.5",
+                          "px-3 py-1.5 text-sm rounded-full border transition-colors",
                           selectedColor === color 
                             ? "bg-primary/10 border-primary text-primary font-medium" 
                             : "border-gray-200 hover:bg-accent/50"
                         )}
-                        onClick={() => setSelectedColor(color)}
+                        onClick={() => {
+                          setSelectedColor(color);
+                          updateAvailableSizes(color);
+                          setCurrentImageIndex(0); // Reset image index when color changes
+                        }}
                       >
-                        {colorMap[color] && (
-                          <span 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: colorMap[color] }}
-                          />
-                        )}
                         {color}
                       </button>
                     ))}
@@ -231,11 +325,11 @@ const ProductDetail = () => {
               )}
               
               {/* Size Selection - Mobile Friendly */}
-              {allSizes.length > 0 && (
+              {availableSizes.length > 0 && (
                 <div>
                   <Label className="text-sm font-medium mb-1 block">Size</Label>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {allSizes.map((size) => (
+                    {availableSizes.map((size) => (
                       <button
                         key={size}
                         type="button"
@@ -291,6 +385,12 @@ const ProductDetail = () => {
                   <span>Base Price:</span>
                   <span>{parseFloat(product.base_price).toLocaleString()} ETB</span>
                 </div>
+                {selectedVariant && parseFloat(selectedVariant.extra_price) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Extra for {selectedColor} / {selectedSize}:</span>
+                    <span>{parseFloat(selectedVariant.extra_price).toLocaleString()} ETB</span>
+                  </div>
+                )}
                 {quantity > 1 && (
                   <div className="flex justify-between">
                     <span>Quantity:</span>
