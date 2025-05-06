@@ -84,14 +84,20 @@ const Products = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(8); // Show more products per page
 
-  // Fetch products from API
+  // Fetch products from API - make sure data loads correctly
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setIsLoading(true);
         const data = await productService.getAllProducts();
+        console.log("Fetched products:", data);
+        
+        if (!data || data.length === 0) {
+          throw new Error('No products returned from API');
+        }
+        
         setProducts(data);
-        setFilteredProducts(data);
+        setFilteredProducts(data); // Initialize with all products
         setError(null);
       } catch (err) {
         console.error('Error fetching products:', err);
@@ -107,13 +113,32 @@ const Products = () => {
     fetchProducts();
   }, []);
 
-  // Extract all unique colors from the products
-  const colors = [...new Set(products.flatMap(product => 
-    product.variants ? product.variants.flatMap(variant => variant.color) : []
-  ))];
+  // Extract all unique colors from the products - process comma-separated colors
+  const processColors = (products: Product[]) => {
+    const colorSet = new Set<string>();
+    
+    products.forEach(product => {
+      if (product.variants) {
+        product.variants.forEach(variant => {
+          if (variant.color) {
+            // Split comma-separated colors and trim whitespace
+            const colors = variant.color.split(',').map(c => c.trim());
+            colors.forEach(color => colorSet.add(color));
+          }
+        });
+      }
+    });
+    
+    return Array.from(colorSet);
+  };
+  
+  const colors = processColors(products);
 
   // Filter products when selections change
   useEffect(() => {
+    if (products.length === 0) return; // Don't filter if no products
+    
+    console.log("Filtering products. Total products:", products.length);
     let result = [...products];
     
     if (searchQuery) {
@@ -133,11 +158,19 @@ const Products = () => {
     }
     
     if (selectedColors.length > 0) {
-      result = result.filter(product => 
-        product.variants && product.variants.some(variant => 
-          selectedColors.includes(variant.color)
-        )
-      );
+      result = result.filter(product => {
+        if (!product.variants) return false;
+        
+        return product.variants.some(variant => {
+          if (!variant.color) return false;
+          
+          // Split comma-separated colors and check if any match
+          const variantColors = variant.color.split(',').map(c => c.trim());
+          return selectedColors.some(selectedColor => 
+            variantColors.includes(selectedColor)
+          );
+        });
+      });
     }
     
     if (selectedGenders.length > 0) {
@@ -157,6 +190,7 @@ const Products = () => {
       }
     );
     
+    console.log("Filtered products:", result.length);
     setFilteredProducts(result);
     setCurrentPage(1); // Reset to first page when filters change
   }, [products, selectedCategories, selectedColors, selectedGenders, searchQuery, priceRange]);
@@ -205,35 +239,53 @@ const Products = () => {
     toast.success('All filters cleared');
   };
 
+  // Add to cart function that correctly handles variants with comma-separated color and size values
   const handleAddToCart = (product: Product) => {
-    // Get existing cart items from localStorage
-    const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
-    
-    // Create a new item with default selections
-    const defaultVariant = product.variants && product.variants[0] ? product.variants[0] : undefined;
-    const variantImage = defaultVariant && defaultVariant.images && defaultVariant.images[0] ? defaultVariant.images[0].image_url : '';
-    
-    const newItem = {
-      id: Date.now().toString(),
-      productId: product.id,
-      name: product.name,
-      price: parseFloat(product.base_price) + (defaultVariant ? parseFloat(defaultVariant.extra_price || '0') : 0),
-      quantity: 1,
-      selectedColor: defaultVariant ? defaultVariant.color : '',
-      selectedSize: defaultVariant ? defaultVariant.size : '',
-      image: product.image_url || variantImage
-    };
-    
-    // Add to cart
-    cartItems.push(newItem);
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-    
-    toast.success(`Added to cart`, {
-      description: `${product.name} added to your cart`,
-    });
+    try {
+      // Get existing cart items from localStorage
+      const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
+      
+      // Parse variant colors and sizes
+      const defaultVariant = product.variants && product.variants[0] ? product.variants[0] : undefined;
+      
+      // Default color and size (handle comma-separated values)
+      let defaultColor = '';
+      let defaultSize = '';
+      
+      if (defaultVariant) {
+        // Take first color from comma-separated list
+        defaultColor = defaultVariant.color.split(',')[0].trim();
+        // Take first size from comma-separated list
+        defaultSize = defaultVariant.size.split(',')[0].trim();
+      }
+      
+      const variantImage = defaultVariant && defaultVariant.images && defaultVariant.images[0] ? defaultVariant.images[0].image_url : '';
+      
+      const newItem = {
+        id: Date.now().toString(),
+        productId: product.id,
+        name: product.name,
+        price: parseFloat(product.base_price) + (defaultVariant ? parseFloat(defaultVariant.extra_price || '0') : 0),
+        quantity: 1,
+        selectedColor: defaultColor,
+        selectedSize: defaultSize,
+        image: product.image_url || variantImage
+      };
+      
+      // Add to cart
+      cartItems.push(newItem);
+      localStorage.setItem('cart', JSON.stringify(cartItems));
+      
+      toast.success(`Added to cart`, {
+        description: `${product.name} added to your cart`,
+      });
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Failed to add to cart");
+    }
   };
 
-  // Helper function to map color names to CSS colors
+  // Helper function to map color names to CSS colors - add more colors as needed
   const getColorValue = (color: string) => {
     const colorMap: Record<string, string> = {
       "Black": "#000000",
@@ -245,7 +297,16 @@ const Products = () => {
       "Purple": "#7C3AED",
       "Brown": "#92400E",
       "Navy": "#1E3A8A",
-      "Gray": "#6B7280"
+      "Gray": "#6B7280",
+      "Orange": "#F97316",
+      "Pink": "#EC4899",
+      "Cream": "#FEFCE8",
+      "Beige": "#E5E7EB",
+      "Gold": "#EAB308",
+      "Silver": "#94A3B8",
+      "Maroon": "#7F1D1D",
+      "Olive": "#4D7C0F",
+      "Teal": "#0D9488"
     };
     
     return colorMap[color] || "#888888";
@@ -254,6 +315,8 @@ const Products = () => {
   // Get current products for pagination
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  
+  // Make sure we don't exceed array bounds
   const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   
   // Calculate total pages
@@ -323,7 +386,7 @@ const Products = () => {
                       </Button>
                     </div>
                     
-                    {/* Mobile Category Filter - Now using collapsible groups for categories */}
+                    {/* Mobile Category Filter */}
                     <div className="space-y-4">
                       <h3 className="font-medium">Category</h3>
                       <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
@@ -378,7 +441,7 @@ const Products = () => {
                             <span 
                               style={{ backgroundColor: getColorValue(color) }} 
                               className={`w-6 h-6 rounded-full border ${
-                                color === 'White' ? 'border-gray-200' : ''
+                                color.toLowerCase() === 'white' ? 'border-gray-200' : ''
                               }`}
                             />
                             <span className="text-xs">{color}</span>
@@ -411,7 +474,7 @@ const Products = () => {
           </div>
         </div>
         
-        {/* Category Scrollable Section - Modern UI for categories */}
+        {/* Category Scrollable Section */}
         <div className="mb-6 overflow-x-auto pb-2 scrollbar-hide">
           <div className="flex gap-2 min-w-max">
             {productCategories.slice(0, 10).map(category => (
@@ -508,7 +571,7 @@ const Products = () => {
                     <Button variant="ghost" size="sm" onClick={clearFilters}>Clear all</Button>
                   </div>
                   
-                  {/* Category Filter - With collapsible groups */}
+                  {/* Category Filter */}
                   <div className="space-y-3 border-t pt-3">
                     <h3 className="font-medium">Category</h3>
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
@@ -564,7 +627,7 @@ const Products = () => {
                           <span 
                             style={{ backgroundColor: getColorValue(color) }} 
                             className={`w-6 h-6 rounded-full border ${
-                              color === 'White' ? 'border-gray-200' : ''
+                              color.toLowerCase() === 'white' ? 'border-gray-200' : ''
                             }`}
                           />
                           <span className="text-xs">{color}</span>
@@ -577,7 +640,7 @@ const Products = () => {
             </div>
           )}
           
-          {/* Products Grid - 4 columns on desktop, 2 on mobile */}
+          {/* Products Grid */}
           <div className={`grid gap-4 sm:gap-6 ${isFiltersVisible ? 'lg:col-span-4' : 'lg:col-span-5'} grid-cols-2 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}>
             {isLoading ? (
               // Loading skeleton
@@ -609,61 +672,7 @@ const Products = () => {
                   Try again
                 </Button>
               </div>
-            ) : currentProducts.length > 0 ? (
-              currentProducts.map(product => (
-                <Card key={product.id} className="overflow-hidden group h-full flex flex-col relative">
-                  <Link to={`/products/${product.id}`} className="flex-grow flex flex-col cursor-pointer">
-                    <div className="aspect-square overflow-hidden relative group-hover:opacity-90 transition-opacity">
-                      <img 
-                        src={product.image_url} 
-                        alt={product.name}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                      />
-                    </div>
-                    
-                    <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="text-xs sm:text-sm text-muted-foreground">
-                            {product.variants && product.variants[0] ? product.variants[0].size : 'All Sizes'}
-                          </p>
-                          <CardTitle className="text-sm sm:text-base md:text-lg mt-0.5 sm:mt-1">{product.name}</CardTitle>
-                        </div>
-                        <p className="text-xs sm:text-sm font-bold">{parseFloat(product.base_price).toLocaleString()} ETB</p>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="p-3 sm:p-4 pt-0 flex-grow">
-                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-                      <div className="mt-2 sm:mt-3 flex items-center gap-1">
-                        {product.variants && product.variants.slice(0, 4).map((variant) => (
-                          <span 
-                            key={`${product.id}-${variant.color}`}
-                            className={`block w-2 h-2 sm:w-3 sm:h-3 rounded-full border ${variant.color === 'White' ? 'border-gray-300' : ''}`}
-                            style={{ backgroundColor: getColorValue(variant.color) }}
-                            title={variant.color}
-                          />
-                        ))}
-                        {product.variants && product.variants.length > 4 && (
-                          <span className="text-[10px] sm:text-xs text-muted-foreground">+{product.variants.length - 4}</span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Link>
-
-                  <CardFooter className="p-3 sm:p-4 pt-0 flex gap-2">
-                    <Button
-                      onClick={() => handleAddToCart(product)}
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 sm:h-10 sm:w-10"
-                    >
-                      <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
+            ) : filteredProducts.length === 0 ? (
               <div className="col-span-full text-center py-8 sm:py-12">
                 <h3 className="text-lg sm:text-xl font-semibold">No products found</h3>
                 <p className="text-sm sm:text-base text-muted-foreground mt-2">Try changing your search or filter criteria</p>
@@ -675,6 +684,86 @@ const Products = () => {
                   Clear all filters
                 </Button>
               </div>
+            ) : (
+              // Products list - Correctly split color and size values
+              currentProducts.map(product => {
+                // Process color and size information for display
+                const variantColors = product.variants?.length > 0 ? 
+                  product.variants.flatMap(v => v.color.split(',').map(c => c.trim()))
+                    .filter((value, index, self) => self.indexOf(value) === index) : 
+                  [];
+                    
+                const variantSizes = product.variants?.length > 0 ? 
+                  product.variants.flatMap(v => v.size.split(',').map(s => s.trim()))
+                    .filter((value, index, self) => self.indexOf(value) === index) : 
+                  [];
+                
+                return (
+                  <Card key={product.id} className="overflow-hidden group h-full flex flex-col relative">
+                    <Link to={`/products/${product.id}`} className="flex-grow flex flex-col cursor-pointer">
+                      <div className="aspect-square overflow-hidden relative group-hover:opacity-90 transition-opacity">
+                        <img 
+                          src={product.image_url || '/placeholder.svg'} 
+                          alt={product.name}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/placeholder.svg';
+                          }}
+                        />
+                      </div>
+                      
+                      <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
+                              {variantSizes.length > 0 ? 
+                                (variantSizes.length > 2 ? 
+                                  `${variantSizes[0]}, ${variantSizes[1]}...` : 
+                                  variantSizes.join(', ')) : 
+                                'All Sizes'}
+                            </p>
+                            <CardTitle className="text-sm sm:text-base md:text-lg mt-0.5 sm:mt-1">{product.name}</CardTitle>
+                          </div>
+                          <p className="text-xs sm:text-sm font-bold">{parseFloat(product.base_price).toLocaleString()} ETB</p>
+                        </div>
+                      </CardHeader>
+                      
+                      <CardContent className="p-3 sm:p-4 pt-0 flex-grow">
+                        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                        <div className="mt-2 sm:mt-3 flex flex-wrap items-center gap-1">
+                          {variantColors.slice(0, 3).map((colorName, idx) => (
+                            <span 
+                              key={`${product.id}-${colorName}-${idx}`}
+                              className={`block w-2 h-2 sm:w-3 sm:h-3 rounded-full border ${
+                                colorName.toLowerCase() === 'white' ? 'border-gray-300' : ''
+                              }`}
+                              style={{ backgroundColor: getColorValue(colorName) }}
+                              title={colorName}
+                            />
+                          ))}
+                          {variantColors.length > 3 && (
+                            <span className="text-[10px] sm:text-xs text-muted-foreground">
+                              +{variantColors.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Link>
+
+                    <CardFooter className="p-3 sm:p-4 pt-0 flex gap-2">
+                      <Button
+                        onClick={() => handleAddToCart(product)}
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 sm:h-10 sm:w-10"
+                      >
+                        <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4" />
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                );
+              })
             )}
           </div>
         </div>
