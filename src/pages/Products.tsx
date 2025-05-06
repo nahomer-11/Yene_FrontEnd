@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
@@ -74,7 +75,7 @@ const Products = () => {
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -157,9 +158,10 @@ const Products = () => {
       );
     }
     
-    if (selectedColors.length > 0) {
+    if (selectedColors.length > 0 && result.some(p => p.variants && p.variants.length > 0)) {
       result = result.filter(product => {
-        if (!product.variants) return false;
+        // If product has no variants, keep it when filtering by color
+        if (!product.variants || product.variants.length === 0) return true;
         
         return product.variants.some(variant => {
           if (!variant.color) return false;
@@ -235,7 +237,7 @@ const Products = () => {
     setSelectedColors([]);
     setSelectedGenders([]);
     setSearchQuery('');
-    setPriceRange([0, 5000]);
+    setPriceRange([0, 10000]);
     toast.success('All filters cleared');
   };
 
@@ -685,18 +687,18 @@ const Products = () => {
                 </Button>
               </div>
             ) : (
-              // Products list - Correctly split color and size values
+              // Products list
               currentProducts.map(product => {
-                // Process color and size information for display
-                const variantColors = product.variants?.length > 0 ? 
-                  product.variants.flatMap(v => v.color.split(',').map(c => c.trim()))
-                    .filter((value, index, self) => self.indexOf(value) === index) : 
-                  [];
-                    
-                const variantSizes = product.variants?.length > 0 ? 
-                  product.variants.flatMap(v => v.size.split(',').map(s => s.trim()))
-                    .filter((value, index, self) => self.indexOf(value) === index) : 
-                  [];
+                // Handle products with or without variants
+                const hasVariants = product.variants && product.variants.length > 0;
+                
+                // Process variant colors for display (if any)
+                const variantColors = hasVariants ? 
+                  product.variants
+                    .filter(v => v.color)
+                    .flatMap(v => v.color.split(',').map(c => c.trim()))
+                    .filter((value, index, self) => self.indexOf(value) === index)
+                  : [];
                 
                 return (
                   <Card key={product.id} className="overflow-hidden group h-full flex flex-col relative">
@@ -716,13 +718,12 @@ const Products = () => {
                       <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
                         <div className="flex justify-between items-start">
                           <div>
-                            <p className="text-xs sm:text-sm text-muted-foreground">
-                              {variantSizes.length > 0 ? 
-                                (variantSizes.length > 2 ? 
-                                  `${variantSizes[0]}, ${variantSizes[1]}...` : 
-                                  variantSizes.join(', ')) : 
-                                'All Sizes'}
-                            </p>
+                            {hasVariants && product.variants[0].size && (
+                              <p className="text-xs sm:text-sm text-muted-foreground">
+                                {product.variants[0].size.split(',').slice(0, 2).join(', ')}
+                                {product.variants[0].size.split(',').length > 2 ? '...' : ''}
+                              </p>
+                            )}
                             <CardTitle className="text-sm sm:text-base md:text-lg mt-0.5 sm:mt-1">{product.name}</CardTitle>
                           </div>
                           <p className="text-xs sm:text-sm font-bold">{parseFloat(product.base_price).toLocaleString()} ETB</p>
@@ -731,23 +732,25 @@ const Products = () => {
                       
                       <CardContent className="p-3 sm:p-4 pt-0 flex-grow">
                         <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-                        <div className="mt-2 sm:mt-3 flex flex-wrap items-center gap-1">
-                          {variantColors.slice(0, 3).map((colorName, idx) => (
-                            <span 
-                              key={`${product.id}-${colorName}-${idx}`}
-                              className={`block w-2 h-2 sm:w-3 sm:h-3 rounded-full border ${
-                                colorName.toLowerCase() === 'white' ? 'border-gray-300' : ''
-                              }`}
-                              style={{ backgroundColor: getColorValue(colorName) }}
-                              title={colorName}
-                            />
-                          ))}
-                          {variantColors.length > 3 && (
-                            <span className="text-[10px] sm:text-xs text-muted-foreground">
-                              +{variantColors.length - 3}
-                            </span>
-                          )}
-                        </div>
+                        {variantColors.length > 0 && (
+                          <div className="mt-2 sm:mt-3 flex flex-wrap items-center gap-1">
+                            {variantColors.slice(0, 3).map((colorName, idx) => (
+                              <span 
+                                key={`${product.id}-${colorName}-${idx}`}
+                                className={`block w-2 h-2 sm:w-3 sm:h-3 rounded-full border ${
+                                  colorName.toLowerCase() === 'white' ? 'border-gray-300' : ''
+                                }`}
+                                style={{ backgroundColor: getColorValue(colorName) }}
+                                title={colorName}
+                              />
+                            ))}
+                            {variantColors.length > 3 && (
+                              <span className="text-[10px] sm:text-xs text-muted-foreground">
+                                +{variantColors.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Link>
 
