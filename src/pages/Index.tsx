@@ -171,49 +171,11 @@ const Index = () => {
       </main>
 
       {/* Footer - Mobile Optimized */}
-      <footer className="bg-card border-t py-8 md:py-12 px-4 sm:px-6 md:px-12 lg:px-24">
-        <div className="container mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="space-y-3 md:space-y-4">
-              <h3 className="text-lg md:text-xl font-bold">Yene Closet</h3>
-              <p className="text-sm md:text-base text-muted-foreground">
-                Premium footwear for every occasion. Step into comfort and style with Ermo Shoes.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-3 md:mb-4">Quick Links</h4>
-              <ul className="space-y-1 md:space-y-2">
-                <li><Link to="/" className="text-sm md:text-base text-muted-foreground hover:text-foreground">Home</Link></li>
-                <li><Link to="/products" className="text-sm md:text-base text-muted-foreground hover:text-foreground">Products</Link></li>
-                <li><Link to="/login" className="text-sm md:text-base text-muted-foreground hover:text-foreground">Account</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-3 md:mb-4">Categories</h4>
-              <ul className="space-y-1 md:space-y-2">
-                <li><Link to="/products?category=running" className="text-sm md:text-base text-muted-foreground hover:text-foreground">Running</Link></li>
-                <li><Link to="/products?category=walking" className="text-sm md:text-base text-muted-foreground hover:text-foreground">Walking</Link></li>
-                <li><Link to="/products?category=sport" className="text-sm md:text-base text-muted-foreground hover:text-foreground">Sport</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-3 md:mb-4">Contact</h4>
-              <ul className="space-y-1 md:space-y-2 text-sm md:text-base text-muted-foreground">
-                <li>Addis Ababa, Ethiopia</li>
-                <li>ermaxyne@gmail.com</li>
-                <li>+251 941936413</li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="border-t mt-6 md:mt-8 pt-6 md:pt-8 text-center text-sm md:text-base text-muted-foreground">
-            <p>© {new Date().getFullYear()} Yene closet. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+<footer className="bg-card border-t py-2 md:py-4 px-4 sm:px-6 md:px-8 lg:px-12">
+  <div className="border-t mt-2 md:mt-4 pt-2 md:pt-4 text-center text-xs md:text-xs text-muted-foreground">
+    <p>© {new Date().getFullYear()} Yene Closet. All rights reserved.</p>
+  </div>
+</footer>
     </div>
   );
 };
