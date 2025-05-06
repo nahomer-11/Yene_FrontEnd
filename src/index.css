@@ -100,23 +100,15 @@
   }
 }
 
-
-@keyframes pulseGlow {
-  0% {
-    text-shadow: none; /* No glow when at normal size */
-    transform: scale(1);
+@keyframes pulseTextColor {
+  0%, 100% {
+    color: #facc15; /* yellow-400 */
   }
   50% {
-    text-shadow: 0 0 2px #ffcc00, 0 0 20px #ffcc00, 0 0 100px #ffcc00; /* Glow only when scaling up */
-    transform: scale(1.1);
-  }
-  100% {
-    text-shadow: none; /* No glow when back to normal size */
-    transform: scale(1);
+    color: #eab308; /* yellow-500 */
   }
 }
 
-/* Apply the pulseGlow animation with a slower speed */
-.animate-pulse-glow {
-  animation: pulseGlow 3s ease-in-out infinite; /* Increased duration for slower animation */
+.animate-text-pulse {
+  animation: pulseTextColor 2.5s ease-in-out infinite;
 }
