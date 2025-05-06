@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -29,29 +30,17 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { toast } from 'sonner';
+import { productService, Product } from '@/api/yene_api';
+import { Footer } from '@/components/layout/Footer';
 
-// Updated product categories as requested
+// Updated product categories
 const productCategories = [
-  "T-shirt",
-  "Jacket",
-  "Hoodie",
-  "Leather Shoe",
-  "Sneakers",
-  "Track Suit",
-  "Suites",
-  "Shorts",
-  "Bundle",
-  "Trousers",
-  "Bags",
-  "Vest",
-  "Sweaters",
-  "Shirts",
-  "Sunglasses",
-  "Jalabiya",
-  "Active Wear",
-  "Premium Wallets & Card Holders",
-  "Watches",
-  "Other"
+  "Sneakers", 
+  "Running", 
+  "Boots", 
+  "Formal", 
+  "Casual", 
+  "Sandals"
 ];
 
 // Gender categories
@@ -68,11 +57,10 @@ const Products = () => {
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeCategorySection, setActiveCategorySection] = useState<string | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [productsPerPage] = useState(8); // Changed to show more products per page
+  const [productsPerPage] = useState(6);
 
   // Fetch products from API
   useEffect(() => {
@@ -129,15 +117,6 @@ const Products = () => {
         )
       );
     }
-    
-    if (selectedGenders.length > 0) {
-      result = result.filter(product => 
-        selectedGenders.some(gender => 
-          product.name.toLowerCase().includes(gender.toLowerCase()) || 
-          product.description.toLowerCase().includes(gender.toLowerCase())
-        )
-      );
-    }
 
     // Filter by price range
     result = result.filter(
@@ -157,17 +136,6 @@ const Products = () => {
         ? prev.filter(c => c !== category)
         : [...prev, category]
     );
-  };
-
-  const toggleCategorySection = (category: string) => {
-    setActiveCategorySection(prev => prev === category ? null : category);
-    
-    // If the category is getting selected, add it to filters
-    if (activeCategorySection !== category) {
-      setSelectedCategories(prev => 
-        prev.includes(category) ? prev : [...prev, category]
-      );
-    }
   };
 
   const toggleColor = (color: string) => {
@@ -269,7 +237,8 @@ const Products = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <div className="container max-w-7xl mx-auto px-4 py-4 sm:py-6 flex-grow">
+      <Navbar />
+      <div className="container max-w-6xl mx-auto px-4 py-4 sm:py-6 flex-grow">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
           
@@ -315,7 +284,7 @@ const Products = () => {
                     {/* Mobile Category Filter */}
                     <div className="space-y-4">
                       <h3 className="font-medium">Category</h3>
-                      <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                      <div className="space-y-2">
                         {productCategories.map(category => (
                           <div key={category} className="flex items-center space-x-2">
                             <Checkbox 
@@ -325,25 +294,6 @@ const Products = () => {
                             />
                             <Label htmlFor={`mobile-category-${category}`} className="capitalize">
                               {category}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Mobile Gender Filter */}
-                    <div className="space-y-4">
-                      <h3 className="font-medium">Gender</h3>
-                      <div className="space-y-2">
-                        {genderCategories.map(gender => (
-                          <div key={gender} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`mobile-gender-${gender}`} 
-                              checked={selectedGenders.includes(gender)}
-                              onCheckedChange={() => toggleGender(gender)}
-                            />
-                            <Label htmlFor={`mobile-gender-${gender}`} className="capitalize">
-                              {gender}
                             </Label>
                           </div>
                         ))}
@@ -400,52 +350,8 @@ const Products = () => {
           </div>
         </div>
         
-        {/* Category Sections */}
-        <div className="mb-6 overflow-x-auto pb-2 scrollbar-hide">
-          <div className="flex gap-2 min-w-max">
-            {productCategories.slice(0, 10).map(category => (
-              <button
-                key={`category-section-${category}`}
-                onClick={() => toggleCategorySection(category)}
-                className={`px-4 py-2 text-sm rounded-full whitespace-nowrap transition-colors ${
-                  activeCategorySection === category 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-secondary hover:bg-secondary/80'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-            {productCategories.length > 10 && (
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="rounded-full whitespace-nowrap">
-                    More +
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="bottom" className="h-[50vh]">
-                  <div className="pt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                    {productCategories.map(category => (
-                      <div key={`bottom-sheet-${category}`} className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`bottom-sheet-category-${category}`} 
-                          checked={selectedCategories.includes(category)}
-                          onCheckedChange={() => toggleCategory(category)}
-                        />
-                        <Label htmlFor={`bottom-sheet-category-${category}`} className="capitalize">
-                          {category}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </SheetContent>
-              </Sheet>
-            )}
-          </div>
-        </div>
-        
         {/* Active filters */}
-        {(selectedCategories.length > 0 || selectedColors.length > 0 || selectedGenders.length > 0) && (
+        {(selectedCategories.length > 0 || selectedColors.length > 0) && (
           <div className="flex flex-wrap gap-2 mb-4">
             {selectedCategories.map(category => (
               <div key={`filter-${category}`} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs sm:text-sm">
@@ -467,15 +373,7 @@ const Products = () => {
                 </button>
               </div>
             ))}
-            {selectedGenders.map(gender => (
-              <div key={`filter-${gender}`} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs sm:text-sm">
-                {gender}
-                <button onClick={() => toggleGender(gender)}>
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            {(selectedCategories.length > 0 || selectedColors.length > 0 || selectedGenders.length > 0) && (
+            {(selectedCategories.length > 0 || selectedColors.length > 0) && (
               <button 
                 onClick={clearFilters}
                 className="text-xs sm:text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1"
@@ -486,7 +384,7 @@ const Products = () => {
           </div>
         )}
         
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Desktop Filters Sidebar */}
           {isFiltersVisible && (
             <div className="hidden md:block lg:col-span-1">
@@ -500,7 +398,7 @@ const Products = () => {
                   {/* Category Filter */}
                   <div className="space-y-3 border-t pt-3">
                     <h3 className="font-medium">Category</h3>
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                    <div className="space-y-2">
                       {productCategories.map(category => (
                         <div key={category} className="flex items-center space-x-2">
                           <Checkbox 
@@ -510,25 +408,6 @@ const Products = () => {
                           />
                           <Label htmlFor={`category-${category}`} className="capitalize">
                             {category}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Gender Filter */}
-                  <div className="space-y-3 border-t pt-3">
-                    <h3 className="font-medium">Gender</h3>
-                    <div className="space-y-2">
-                      {genderCategories.map(gender => (
-                        <div key={gender} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`gender-${gender}`} 
-                            checked={selectedGenders.includes(gender)}
-                            onCheckedChange={() => toggleGender(gender)}
-                          />
-                          <Label htmlFor={`gender-${gender}`} className="capitalize">
-                            {gender}
                           </Label>
                         </div>
                       ))}
@@ -566,11 +445,11 @@ const Products = () => {
             </div>
           )}
           
-          {/* Products Grid - 4 columns on desktop, 2 on mobile */}
-          <div className={`grid gap-4 sm:gap-6 ${isFiltersVisible ? 'lg:col-span-4' : 'lg:col-span-5'} grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}>
+          {/* Products Grid */}
+          <div className={`grid gap-4 sm:gap-6 ${isFiltersVisible ? 'lg:col-span-3' : 'lg:col-span-4'} grid-cols-2 sm:grid-cols-2 md:grid-cols-3`}>
             {isLoading ? (
               // Loading skeleton
-              Array(8).fill(0).map((_, index) => (
+              Array(6).fill(0).map((_, index) => (
                 <Card key={`skeleton-${index}`} className="overflow-hidden animate-pulse">
                   <div className="aspect-square bg-gray-200"></div>
                   <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
@@ -723,6 +602,7 @@ const Products = () => {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 };
