@@ -18,6 +18,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { cn } from '@/lib/utils';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +26,7 @@ const ProductDetail = () => {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [totalPrice, setTotalPrice] = useState(0);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
@@ -48,14 +50,19 @@ const ProductDetail = () => {
   const calculateTotalPrice = () => {
     if (!product) return 0;
     
-    let totalPrice = parseFloat(product.base_price);
+    let price = parseFloat(product.base_price);
     
     if (selectedVariant) {
-      totalPrice += parseFloat(selectedVariant.extra_price || '0');
+      price += parseFloat(selectedVariant.extra_price || '0');
     }
     
-    return totalPrice;
+    return price * quantity;
   };
+
+  // Update total price whenever quantity or selected variant changes
+  useEffect(() => {
+    setTotalPrice(calculateTotalPrice());
+  }, [quantity, selectedVariantId, product]);
 
   const handleAddToCart = () => {
     if (!selectedVariantId) {
@@ -84,7 +91,7 @@ const ProductDetail = () => {
           productId: product.id,
           productVariantId: selectedVariantId, // This is the key field we need for the API
           name: product.name,
-          price: calculateTotalPrice(),
+          price: calculateTotalPrice() / quantity, // Store unit price
           quantity: quantity,
           selectedColor: selectedVariant ? selectedVariant.color : '',
           selectedSize: selectedVariant ? selectedVariant.size : '',
@@ -103,27 +110,25 @@ const ProductDetail = () => {
     }
   };
 
-  // ... keep existing code (handleBack function and loading/error states)
-
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-screen-xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="container mx-auto py-4 px-3 max-w-screen-xl">
+        <div className="grid grid-cols-1 gap-4">
           <div>
-            <Skeleton className="h-[400px] w-full rounded-xl" />
-            <div className="mt-4 flex gap-2">
+            <Skeleton className="h-[300px] w-full rounded-xl" />
+            <div className="mt-2 flex gap-1 overflow-x-auto pb-2">
               {[1, 2, 3].map(i => (
-                <Skeleton key={i} className="h-16 w-16 rounded-md" />
+                <Skeleton key={i} className="h-12 w-12 flex-shrink-0 rounded-md" />
               ))}
             </div>
           </div>
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-3/4" />
-            <Skeleton className="h-6 w-1/4" />
-            <Skeleton className="h-24 w-full" />
+          <div className="space-y-3">
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-5 w-1/4" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
             <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-12 w-full" />
           </div>
         </div>
       </div>
@@ -132,8 +137,8 @@ const ProductDetail = () => {
 
   if (error || !product) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-screen-xl">
-        <div className="text-center py-10">
+      <div className="container mx-auto py-4 px-3 max-w-screen-xl">
+        <div className="text-center py-6">
           <p className="text-red-500 mb-4">Error loading product details.</p>
           <Button onClick={() => navigate(-1)}>Back</Button>
         </div>
@@ -141,7 +146,6 @@ const ProductDetail = () => {
     );
   }
 
-  // ... keep existing code (variant options and UI rendering)
   // Group variants by color and size for selection
   const colorOptions = Array.from(new Set(product.variants.map(v => v.color)));
   const sizeOptions = Array.from(new Set(product.variants.map(v => v.size)));
@@ -155,14 +159,13 @@ const ProductDetail = () => {
     .map(v => v.size);
   
   return (
-    <div className="container mx-auto py-8 px-4 max-w-screen-xl">
-      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
-        <ChevronLeft className="mr-2 h-4 w-4" /> Back
+    <div className="container mx-auto py-4 px-3 sm:px-4 max-w-screen-xl">
+      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 p-1 h-auto sm:p-2 sm:h-10">
+        <ChevronLeft className="h-4 w-4 mr-1" /> <span className="text-sm">Back</span>
       </Button>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* ... keep existing code (image display section) */}
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+        <div className="space-y-3">
           {/* Main Product Image */}
           <div className="aspect-square overflow-hidden rounded-lg border bg-background">
             {selectedVariant && selectedVariant.images && selectedVariant.images.length > 0 ? (
@@ -180,151 +183,139 @@ const ProductDetail = () => {
             )}
           </div>
           
-          {/* Image Carousel/Thumbnails */}
+          {/* Image Thumbnails - Mobile Friendly Scroll */}
           {selectedVariant && selectedVariant.images && selectedVariant.images.length > 1 && (
-            <Carousel className="w-full max-w-xs mx-auto">
-              <CarouselContent>
+            <div className="overflow-x-auto pb-2">
+              <div className="flex gap-2">
                 {selectedVariant.images.map((image, index) => (
-                  <CarouselItem key={index} className="basis-1/4 pl-1">
-                    <div 
-                      className={`aspect-square rounded-md overflow-hidden cursor-pointer border ${
-                        currentImageIndex === index ? 'border-primary ring-2 ring-primary' : 'border-muted'
-                      }`}
-                      onClick={() => setCurrentImageIndex(index)}
-                    >
-                      <img
-                        src={image.image_url || '/placeholder.svg'}
-                        alt={`${product.name} - View ${index + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  </CarouselItem>
+                  <div 
+                    key={index}
+                    className={cn(
+                      "flex-shrink-0 w-14 h-14 rounded-md overflow-hidden cursor-pointer border",
+                      currentImageIndex === index ? "border-primary ring-1 ring-primary" : "border-muted"
+                    )}
+                    onClick={() => setCurrentImageIndex(index)}
+                  >
+                    <img
+                      src={image.image_url || '/placeholder.svg'}
+                      alt={`${product.name} - View ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
                 ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-0" />
-              <CarouselNext className="right-0" />
-            </Carousel>
+              </div>
+            </div>
           )}
         </div>
         
         <div>
-          <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-          <p className="text-xl font-semibold mb-4">{calculateTotalPrice().toLocaleString()} ETB</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1">{product.name}</h1>
+          <p className="text-lg sm:text-xl font-semibold mb-2">{totalPrice.toLocaleString()} ETB</p>
           
-          <div className="prose mb-6">
+          <div className="prose prose-sm sm:prose mb-3 max-w-none">
             <p>{product.description}</p>
           </div>
           
-          <Card className="mb-6">
-            <CardContent className="p-6 space-y-6">
-              {/* Color Selection */}
+          <Card className="mb-4">
+            <CardContent className="p-3 sm:p-4 space-y-4">
+              {/* Color Selection - Mobile Friendly */}
               {colorOptions.length > 0 && (
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Color</Label>
-                  <RadioGroup 
-                    value={selectedColor} 
-                    onValueChange={(color) => {
-                      // When color changes, find first variant of this color and select it
-                      const firstVariantOfColor = product.variants.find(v => v.color === color);
-                      if (firstVariantOfColor) {
-                        setSelectedVariantId(firstVariantOfColor.id);
-                        setCurrentImageIndex(0); // Reset image index when color changes
-                      }
-                    }}
-                    className="flex flex-wrap gap-2 mt-2"
-                  >
+                  <Label className="text-sm font-medium mb-1 block">Color</Label>
+                  <div className="flex flex-wrap gap-2 mt-1">
                     {colorOptions.map((color) => (
-                      <div key={color} className="flex items-center">
-                        <RadioGroupItem
-                          value={color}
-                          id={`color-${color}`}
-                          className="peer sr-only"
-                        />
-                        <Label
-                          htmlFor={`color-${color}`}
-                          className="flex items-center gap-2 rounded-md border px-4 py-2 cursor-pointer 
-                            peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 peer-data-[state=checked]:font-medium
-                            hover:bg-accent transition-colors"
-                        >
-                          {color}
-                        </Label>
-                      </div>
+                      <button
+                        key={color}
+                        type="button"
+                        className={cn(
+                          "px-3 py-1.5 text-sm rounded-full border transition-colors",
+                          selectedColor === color 
+                            ? "bg-primary/10 border-primary text-primary font-medium" 
+                            : "border-gray-200 hover:bg-accent/50"
+                        )}
+                        onClick={() => {
+                          // When color changes, find first variant of this color and select it
+                          const firstVariantOfColor = product.variants.find(v => v.color === color);
+                          if (firstVariantOfColor) {
+                            setSelectedVariantId(firstVariantOfColor.id);
+                            setCurrentImageIndex(0); // Reset image index when color changes
+                          }
+                        }}
+                      >
+                        {color}
+                      </button>
                     ))}
-                  </RadioGroup>
+                  </div>
                 </div>
               )}
               
-              {/* Size Selection */}
+              {/* Size Selection - Mobile Friendly */}
               {sizeOptions.length > 0 && (
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Size</Label>
-                  <RadioGroup 
-                    value={selectedVariant?.size || ''} 
-                    onValueChange={(size) => {
-                      // Find variant with current color and this size
-                      const variantToSelect = product.variants.find(
-                        v => v.color === selectedColor && v.size === size
-                      );
-                      if (variantToSelect) {
-                        setSelectedVariantId(variantToSelect.id);
-                      }
-                    }}
-                    className="flex flex-wrap gap-2 mt-2"
-                  >
+                  <Label className="text-sm font-medium mb-1 block">Size</Label>
+                  <div className="flex flex-wrap gap-2 mt-1">
                     {sizeOptions
                       .filter(size => availableSizesForColor.includes(size))
                       .map((size) => (
-                        <div key={size} className="flex items-center">
-                          <RadioGroupItem
-                            value={size}
-                            id={`size-${size}`}
-                            className="peer sr-only"
-                          />
-                          <Label
-                            htmlFor={`size-${size}`}
-                            className="flex h-10 w-14 items-center justify-center rounded-md border 
-                              peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5
-                              hover:bg-accent cursor-pointer"
-                          >
-                            {size}
-                          </Label>
-                        </div>
+                        <button
+                          key={size}
+                          type="button"
+                          className={cn(
+                            "flex h-8 min-w-[2rem] items-center justify-center px-2 rounded-md border text-sm",
+                            selectedVariant?.size === size
+                              ? "bg-primary/10 border-primary text-primary font-medium"
+                              : "border-gray-200 hover:bg-accent/50"
+                          )}
+                          onClick={() => {
+                            // Find variant with current color and this size
+                            const variantToSelect = product.variants.find(
+                              v => v.color === selectedColor && v.size === size
+                            );
+                            if (variantToSelect) {
+                              setSelectedVariantId(variantToSelect.id);
+                            }
+                          }}
+                        >
+                          {size}
+                        </button>
                       ))}
-                  </RadioGroup>
+                  </div>
                 </div>
               )}
               
-              {/* Quantity Selection */}
+              {/* Quantity Selection - Mobile Friendly */}
               <div>
-                <Label className="text-sm font-medium mb-2 block">Quantity</Label>
-                <div className="flex items-center mt-2">
+                <Label className="text-sm font-medium mb-1 block">Quantity</Label>
+                <div className="flex items-center mt-1">
                   <Button 
                     variant="outline" 
-                    size="icon" 
+                    size="icon"
+                    className="h-8 w-8"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
                   >
-                    <Minus className="h-4 w-4" />
+                    <Minus className="h-3.5 w-3.5" />
                   </Button>
                   <Input 
                     type="number"
                     min={1}
                     value={quantity} 
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-20 mx-2 text-center"
+                    className="w-14 mx-2 text-center h-8 px-1"
                   />
                   <Button 
                     variant="outline" 
-                    size="icon" 
+                    size="icon"
+                    className="h-8 w-8"
                     onClick={() => setQuantity(quantity + 1)}
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
 
-              {/* Price Summary */}
-              <div className="pt-4 border-t">
+              {/* Price Summary - Mobile Friendly */}
+              <div className="pt-3 border-t text-sm">
                 <div className="flex justify-between">
                   <span>Base Price:</span>
                   <span>{parseFloat(product.base_price).toLocaleString()} ETB</span>
@@ -335,21 +326,26 @@ const ProductDetail = () => {
                     <span>{parseFloat(selectedVariant.extra_price).toLocaleString()} ETB</span>
                   </div>
                 )}
+                {quantity > 1 && (
+                  <div className="flex justify-between">
+                    <span>Quantity:</span>
+                    <span>× {quantity}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold mt-2 pt-2 border-t">
                   <span>Total:</span>
-                  <span>{calculateTotalPrice().toLocaleString()} ETB</span>
+                  <span>{totalPrice.toLocaleString()} ETB</span>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           <Button 
-            size="lg" 
-            className="w-full"
+            className="w-full py-2 h-auto text-sm sm:text-base sm:h-10"
             onClick={handleAddToCart}
             disabled={!selectedVariantId}
           >
-            <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
+            <ShoppingCart className="mr-1.5 h-4 w-4" /> Add to Cart
           </Button>
         </div>
       </div>
