@@ -1,30 +1,25 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { productService, Product, ProductVariant } from '@/api/yene_api';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from "@/components/ui/input";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Minus, Plus, ShoppingCart, ChevronLeft } from 'lucide-react';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 import { cn } from '@/lib/utils';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedSize, setSelectedSize] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [totalPrice, setTotalPrice] = useState(0);
 
   const { data: product, isLoading, error } = useQuery({
@@ -33,43 +28,46 @@ const ProductDetail = () => {
     enabled: !!id,
   });
 
-  // Set default variant when product data loads
+  // Process color and size options when product data loads
   useEffect(() => {
-    if (product && product.variants.length > 0 && !selectedVariantId) {
-      setSelectedVariantId(product.variants[0].id);
+    if (product && product.variants.length > 0) {
+      // Get the first variant
+      const firstVariant = product.variants[0];
+      
+      // Set the first variant ID
+      setSelectedVariantId(firstVariant.id);
+      
+      // Get first color
+      const colors = firstVariant.color.split(',').map(c => c.trim());
+      if (colors.length > 0) {
+        setSelectedColor(colors[0]);
+      }
+      
+      // Get first size
+      const sizes = firstVariant.size.split(',').map(s => s.trim());
+      if (sizes.length > 0) {
+        setSelectedSize(sizes[0]);
+      }
     }
-  }, [product, selectedVariantId]);
+  }, [product]);
 
-  // Find the currently selected variant
-  const selectedVariant = product?.variants.find(
-    (variant: ProductVariant) => variant.id === selectedVariantId
-  );
-
-  // Calculate total price based on base price and variant's extra price
-  const calculateTotalPrice = () => {
-    if (!product) return 0;
-    
-    let price = parseFloat(product.base_price);
-    
-    if (selectedVariant) {
-      price += parseFloat(selectedVariant.extra_price || '0');
-    }
-    
-    return price * quantity;
-  };
-
-  // Update total price whenever quantity or selected variant changes
+  // Calculate total price based on base price, variant's extra price, and quantity
   useEffect(() => {
-    setTotalPrice(calculateTotalPrice());
-  }, [quantity, selectedVariantId, product]);
+    if (product) {
+      const basePrice = parseFloat(product.base_price);
+      const extraPrice = selectedVariantId 
+        ? parseFloat(product.variants.find(v => v.id === selectedVariantId)?.extra_price || '0') 
+        : 0;
+      
+      setTotalPrice((basePrice + extraPrice) * quantity);
+    }
+  }, [product, selectedVariantId, quantity]);
 
   const handleAddToCart = () => {
-    if (!selectedVariantId) {
-      toast.error('Please select a variant');
+    if (!selectedVariantId || !product) {
+      toast.error('Please select options first');
       return;
     }
-    
-    if (!product) return;
     
     try {
       // Get existing cart from localStorage
@@ -84,17 +82,17 @@ const ProductDetail = () => {
         // Update quantity if already in cart
         cartItems[existingItemIndex].quantity += quantity;
       } else {
-        // Add new item to cart - Note the updated key productVariantId
+        // Add new item to cart
         const newItem = {
           id: Date.now().toString(),
           productId: product.id,
-          productVariantId: selectedVariantId, // This is the key field we need for the API
+          productVariantId: selectedVariantId,
           name: product.name,
-          price: calculateTotalPrice() / quantity, // Store unit price
+          price: totalPrice / quantity, // Store unit price
           quantity: quantity,
-          selectedColor: selectedVariant ? selectedVariant.color : '',
-          selectedSize: selectedVariant ? selectedVariant.size : '',
-          image: selectedVariant?.images?.[0]?.image_url || product.image_url || '/placeholder.svg'
+          selectedColor: selectedColor,
+          selectedSize: selectedSize,
+          image: product.image_url || '/placeholder.svg'
         };
         cartItems.push(newItem);
       }
@@ -145,18 +143,35 @@ const ProductDetail = () => {
     );
   }
 
-  // Group variants by color and size for selection
-  const colorOptions = Array.from(new Set(product.variants.map(v => v.color)));
-  const sizeOptions = Array.from(new Set(product.variants.map(v => v.size)));
-  
-  // Find selected color based on selected variant
-  const selectedColor = selectedVariant?.color || colorOptions[0];
+  // Extract colors and sizes from the variants
+  const allColors: string[] = [];
+  const allSizes: string[] = [];
 
-  // Filter variants by selected color to show appropriate sizes
-  const availableSizesForColor = product.variants
-    .filter(v => v.color === selectedColor)
-    .map(v => v.size);
-  
+  product.variants.forEach(variant => {
+    // Split colors by comma and trim whitespace
+    const colors = variant.color.split(',').map(c => c.trim());
+    colors.forEach(color => {
+      if (!allColors.includes(color)) {
+        allColors.push(color);
+      }
+    });
+
+    // Split sizes by comma and trim whitespace
+    const sizes = variant.size.split(',').map(s => s.trim());
+    sizes.forEach(size => {
+      if (!allSizes.includes(size)) {
+        allSizes.push(size);
+      }
+    });
+  });
+
+  const colorMap: Record<string, string> = {
+    'Brown': '#8B4513',
+    'black': '#000000',
+    'purple': '#800080',
+    // Add more color mappings as needed
+  };
+
   return (
     <div className="container mx-auto py-4 px-3 sm:px-4 max-w-screen-xl">
       <Button variant="ghost" onClick={() => navigate(-1)} className="mb-3 p-1 h-auto sm:p-2 sm:h-10">
@@ -167,44 +182,12 @@ const ProductDetail = () => {
         <div className="space-y-3">
           {/* Main Product Image */}
           <div className="aspect-square overflow-hidden rounded-lg border bg-background">
-            {selectedVariant && selectedVariant.images && selectedVariant.images.length > 0 ? (
-              <img
-                src={selectedVariant.images[currentImageIndex]?.image_url || '/placeholder.svg'}
-                alt={`${product.name} - ${selectedVariant.color} ${selectedVariant.size}`}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <img
-                src={product.image_url || '/placeholder.svg'}
-                alt={product.name}
-                className="h-full w-full object-cover"
-              />
-            )}
+            <img
+              src={product.image_url || '/placeholder.svg'}
+              alt={product.name}
+              className="h-full w-full object-cover"
+            />
           </div>
-          
-          {/* Image Thumbnails - Mobile Friendly Scroll */}
-          {selectedVariant && selectedVariant.images && selectedVariant.images.length > 1 && (
-            <div className="overflow-x-auto pb-2">
-              <div className="flex gap-2">
-                {selectedVariant.images.map((image, index) => (
-                  <div 
-                    key={index}
-                    className={cn(
-                      "flex-shrink-0 w-14 h-14 rounded-md overflow-hidden cursor-pointer border",
-                      currentImageIndex === index ? "border-primary ring-1 ring-primary" : "border-muted"
-                    )}
-                    onClick={() => setCurrentImageIndex(index)}
-                  >
-                    <img
-                      src={image.image_url || '/placeholder.svg'}
-                      alt={`${product.name} - View ${index + 1}`}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
         
         <div>
@@ -218,29 +201,28 @@ const ProductDetail = () => {
           <Card className="mb-4">
             <CardContent className="p-3 sm:p-4 space-y-4">
               {/* Color Selection - Mobile Friendly */}
-              {colorOptions.length > 0 && (
+              {allColors.length > 0 && (
                 <div>
                   <Label className="text-sm font-medium mb-1 block">Color</Label>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {colorOptions.map((color) => (
+                    {allColors.map((color) => (
                       <button
                         key={color}
                         type="button"
                         className={cn(
-                          "px-3 py-1.5 text-sm rounded-full border transition-colors",
+                          "px-3 py-1.5 text-sm rounded-full border transition-colors flex items-center gap-1.5",
                           selectedColor === color 
                             ? "bg-primary/10 border-primary text-primary font-medium" 
                             : "border-gray-200 hover:bg-accent/50"
                         )}
-                        onClick={() => {
-                          // When color changes, find first variant of this color and select it
-                          const firstVariantOfColor = product.variants.find(v => v.color === color);
-                          if (firstVariantOfColor) {
-                            setSelectedVariantId(firstVariantOfColor.id);
-                            setCurrentImageIndex(0); // Reset image index when color changes
-                          }
-                        }}
+                        onClick={() => setSelectedColor(color)}
                       >
+                        {colorMap[color] && (
+                          <span 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: colorMap[color] }}
+                          />
+                        )}
                         {color}
                       </button>
                     ))}
@@ -249,35 +231,25 @@ const ProductDetail = () => {
               )}
               
               {/* Size Selection - Mobile Friendly */}
-              {sizeOptions.length > 0 && (
+              {allSizes.length > 0 && (
                 <div>
                   <Label className="text-sm font-medium mb-1 block">Size</Label>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {sizeOptions
-                      .filter(size => availableSizesForColor.includes(size))
-                      .map((size) => (
-                        <button
-                          key={size}
-                          type="button"
-                          className={cn(
-                            "flex h-8 min-w-[2rem] items-center justify-center px-2 rounded-md border text-sm",
-                            selectedVariant?.size === size
-                              ? "bg-primary/10 border-primary text-primary font-medium"
-                              : "border-gray-200 hover:bg-accent/50"
-                          )}
-                          onClick={() => {
-                            // Find variant with current color and this size
-                            const variantToSelect = product.variants.find(
-                              v => v.color === selectedColor && v.size === size
-                            );
-                            if (variantToSelect) {
-                              setSelectedVariantId(variantToSelect.id);
-                            }
-                          }}
-                        >
-                          {size}
-                        </button>
-                      ))}
+                    {allSizes.map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        className={cn(
+                          "flex h-8 min-w-[2rem] items-center justify-center px-2 rounded-md border text-sm",
+                          selectedSize === size
+                            ? "bg-primary/10 border-primary text-primary font-medium"
+                            : "border-gray-200 hover:bg-accent/50"
+                        )}
+                        onClick={() => setSelectedSize(size)}
+                      >
+                        {size}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
@@ -319,12 +291,6 @@ const ProductDetail = () => {
                   <span>Base Price:</span>
                   <span>{parseFloat(product.base_price).toLocaleString()} ETB</span>
                 </div>
-                {selectedVariant && parseFloat(selectedVariant.extra_price) > 0 && (
-                  <div className="flex justify-between">
-                    <span>Extra for {selectedVariant.color} / {selectedVariant.size}:</span>
-                    <span>{parseFloat(selectedVariant.extra_price).toLocaleString()} ETB</span>
-                  </div>
-                )}
                 {quantity > 1 && (
                   <div className="flex justify-between">
                     <span>Quantity:</span>
@@ -342,7 +308,6 @@ const ProductDetail = () => {
           <Button 
             className="w-full py-2 h-auto text-sm sm:text-base sm:h-10"
             onClick={handleAddToCart}
-            disabled={!selectedVariantId}
           >
             <ShoppingCart className="mr-1.5 h-4 w-4" /> Add to Cart
           </Button>
