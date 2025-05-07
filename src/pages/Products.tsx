@@ -11,9 +11,7 @@ import {
   Filter, 
   ChevronDown,
   ShoppingCart,
-  X,
-  ArrowDown,
-  RefreshCcw
+  X
 } from 'lucide-react';
 import { 
   Sheet, 
@@ -81,52 +79,67 @@ const Products = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCategorySection, setActiveCategorySection] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [autoRefreshInterval, setAutoRefreshInterval] = useState<number | null>(null);
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(8); // Show more products per page
 
-  // Extract the fetch products logic to a separate function
-  const fetchProducts = async () => {
-    try {
-      setIsLoading(true);
-      const data = await productService.getAllProducts();
-      console.log("Fetched products:", data);
-      
-      if (!data || data.length === 0) {
-        throw new Error('No products returned from API');
+  // Fetch products from API - make sure data loads correctly
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        const data = await productService.getAllProducts();
+        console.log("Fetched products:", data);
+        
+        if (!data || data.length === 0) {
+          throw new Error('No products returned from API');
+        }
+        
+        setProducts(data);
+        setFilteredProducts(data); // Initialize with all products
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products');
+        toast.error('Failed to load products');
+        setProducts([]);
+        setFilteredProducts([]);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setProducts(data);
-      // Don't reset filtered products here, to preserve filters
-      if (filteredProducts.length === 0) {
-        setFilteredProducts(data);
-      } else {
-        // Apply existing filters to new products
-        applyFilters(data);
-      }
-      
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      setError('Failed to load products');
-      toast.error('Failed to load products');
-      setProducts([]);
-      setFilteredProducts([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  // Apply filters to products based on current filter settings
-  const applyFilters = (productsList: Product[]) => {
-    if (productsList.length === 0) return;
+    fetchProducts();
+  }, []);
+
+  // Extract all unique colors from the products - process comma-separated colors
+  const processColors = (products: Product[]) => {
+    const colorSet = new Set<string>();
     
-    console.log("Filtering products. Total products:", productsList.length);
-    let result = [...productsList];
+    products.forEach(product => {
+      if (product.variants) {
+        product.variants.forEach(variant => {
+          if (variant.color) {
+            // Split comma-separated colors and trim whitespace
+            const colors = variant.color.split(',').map(c => c.trim());
+            colors.forEach(color => colorSet.add(color));
+          }
+        });
+      }
+    });
+    
+    return Array.from(colorSet);
+  };
+  
+  const colors = processColors(products);
+
+  // Filter products when selections change
+  useEffect(() => {
+    if (products.length === 0) return; // Don't filter if no products
+    
+    console.log("Filtering products. Total products:", products.length);
+    let result = [...products];
     
     if (searchQuery) {
       result = result.filter(product => 
@@ -180,76 +193,8 @@ const Products = () => {
     
     console.log("Filtered products:", result.length);
     setFilteredProducts(result);
-  };
-
-  // Handle refresh function
-  const handleRefresh = () => {
-    toast.info('Refreshing products...');
-    setRefreshKey(prevKey => prevKey + 1);
-  };
-  
-  // Toggle auto refresh
-  const toggleAutoRefresh = () => {
-    if (autoRefreshEnabled) {
-      // Disable auto refresh
-      if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-        setAutoRefreshInterval(null);
-      }
-      setAutoRefreshEnabled(false);
-      toast.info('Auto refresh disabled');
-    } else {
-      // Enable auto refresh - every 30 seconds
-      const interval = window.setInterval(() => {
-        console.log('Auto refreshing products...');
-        setRefreshKey(prevKey => prevKey + 1);
-      }, 30000) as unknown as number;
-      
-      setAutoRefreshInterval(interval);
-      setAutoRefreshEnabled(true);
-      toast.success('Auto refresh enabled (every 30 seconds)');
-    }
-  };
-
-  // Cleanup auto refresh on component unmount
-  useEffect(() => {
-    return () => {
-      if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-      }
-    };
-  }, [autoRefreshInterval]);
-
-  // Fetch products from API - now depends on refreshKey to allow manual refreshing
-  useEffect(() => {
-    fetchProducts();
-  }, [refreshKey]);
-
-  // Update filtered products when filters or products change
-  useEffect(() => {
-    applyFilters(products);
-  }, [selectedCategories, selectedColors, selectedGenders, searchQuery, priceRange, products]);
-
-  // Extract all unique colors from the products - process comma-separated colors
-  const processColors = (products: Product[]) => {
-    const colorSet = new Set<string>();
-    
-    products.forEach(product => {
-      if (product.variants) {
-        product.variants.forEach(variant => {
-          if (variant.color) {
-            // Split comma-separated colors and trim whitespace
-            const colors = variant.color.split(',').map(c => c.trim());
-            colors.forEach(color => colorSet.add(color));
-          }
-        });
-      }
-    });
-    
-    return Array.from(colorSet);
-  };
-  
-  const colors = processColors(products);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [products, selectedCategories, selectedColors, selectedGenders, searchQuery, priceRange]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev => 
@@ -401,33 +346,7 @@ const Products = () => {
       <Navbar />
       <div className="container max-w-7xl mx-auto px-4 py-4 sm:py-6 flex-grow">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
-            <div className="flex items-center gap-1">
-              {/* Manual refresh button */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleRefresh} 
-                className="h-8 w-8"
-                title="Refresh products"
-                disabled={isLoading}
-              >
-                <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
-              
-              {/* Auto refresh toggle */}
-              <Button
-                variant={autoRefreshEnabled ? "default" : "outline"}
-                size="sm"
-                onClick={toggleAutoRefresh}
-                className="text-xs"
-                title={autoRefreshEnabled ? "Disable auto refresh" : "Enable auto refresh"}
-              >
-                {autoRefreshEnabled ? "Auto" : "Auto"} 
-              </Button>
-            </div>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
           
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
@@ -747,7 +666,7 @@ const Products = () => {
                 <h3 className="text-lg sm:text-xl font-semibold">Error loading products</h3>
                 <p className="text-muted-foreground mt-2">{error}</p>
                 <Button 
-                  onClick={handleRefresh}
+                  onClick={() => window.location.reload()}
                   variant="outline" 
                   className="mt-4"
                 >
