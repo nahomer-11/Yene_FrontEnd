@@ -12,7 +12,8 @@ import {
   Filter, 
   ChevronDown,
   ShoppingCart,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { 
   Sheet, 
@@ -80,6 +81,7 @@ const Products = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCategorySection, setActiveCategorySection] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -102,27 +104,29 @@ const Products = () => {
       console.error('Error fetching products:', err);
       setError('Failed to load products');
       toast.error('Failed to load products');
-      setProducts([]);
-      setFilteredProducts([]);
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   // Function to manually refresh products
   const refreshProducts = () => {
+    setRefreshing(true);
     setRefreshTrigger(prev => prev + 1);
+    toast.info("Refreshing products...");
   };
 
   // Fetch products when component mounts or refreshTrigger changes
   useEffect(() => {
+    console.log("Effect running with trigger:", refreshTrigger);
     fetchProducts();
     
     // Set up an interval to periodically refresh products
     const refreshInterval = setInterval(() => {
       console.log('Auto-refreshing products...');
       fetchProducts();
-    }, 30000); // Refresh every 30 seconds
+    }, 10000); // Refresh every 10 seconds to ensure new products appear quickly
     
     return () => clearInterval(refreshInterval);
   }, [fetchProducts, refreshTrigger]);
@@ -309,8 +313,9 @@ const Products = () => {
               size="sm" 
               onClick={refreshProducts}
               className="flex items-center gap-1 text-xs"
-              title="Refresh product list"
+              disabled={refreshing}
             >
+              <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
@@ -595,7 +600,7 @@ const Products = () => {
                           <span 
                             style={{ backgroundColor: getColorValue(color) }} 
                             className={`w-6 h-6 rounded-full border ${
-                              color === 'White' ? 'border-gray-200' : ''
+                              color === 'White' ? 'border-gray-300' : ''
                             }`}
                           />
                           <span className="text-xs">{color}</span>
@@ -649,6 +654,9 @@ const Products = () => {
                         src={product.image_url} 
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                        }}
                       />
                     </div>
                     
