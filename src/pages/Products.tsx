@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,7 @@ import {
   Filter, 
   ChevronDown,
   ShoppingCart,
-  X,
-  RefreshCw
+  X
 } from 'lucide-react';
 import { 
   Sheet, 
@@ -81,55 +80,33 @@ const Products = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeCategorySection, setActiveCategorySection] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(8); // Show more products per page
-  
-  // Add a refresh trigger state
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Create a memoized fetchProducts function
-  const fetchProducts = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      console.log('Fetching products...');
-      const data = await productService.getAllProducts();
-      console.log('Products fetched:', data);
-      setProducts(data);
-      setFilteredProducts(data);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      setError('Failed to load products');
-      toast.error('Failed to load products');
-    } finally {
-      setIsLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  // Function to manually refresh products
-  const refreshProducts = () => {
-    setRefreshing(true);
-    setRefreshTrigger(prev => prev + 1);
-    toast.info("Refreshing products...");
-  };
-
-  // Fetch products when component mounts or refreshTrigger changes
+  // Fetch products from API
   useEffect(() => {
-    console.log("Effect running with trigger:", refreshTrigger);
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        const data = await productService.getAllProducts();
+        setProducts(data);
+        setFilteredProducts(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products');
+        toast.error('Failed to load products');
+        setProducts([]);
+        setFilteredProducts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchProducts();
-    
-    // Set up an interval to periodically refresh products
-    const refreshInterval = setInterval(() => {
-      console.log('Auto-refreshing products...');
-      fetchProducts();
-    }, 10000); // Refresh every 10 seconds to ensure new products appear quickly
-    
-    return () => clearInterval(refreshInterval);
-  }, [fetchProducts, refreshTrigger]);
+  }, []);
 
   // Extract all unique colors from the products
   const colors = [...new Set(products.flatMap(product => 
@@ -306,19 +283,7 @@ const Products = () => {
       <Navbar />
       <div className="container max-w-7xl mx-auto px-4 py-4 sm:py-6 flex-grow">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={refreshProducts}
-              className="flex items-center gap-1 text-xs"
-              disabled={refreshing}
-            >
-              <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
           
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
@@ -600,7 +565,7 @@ const Products = () => {
                           <span 
                             style={{ backgroundColor: getColorValue(color) }} 
                             className={`w-6 h-6 rounded-full border ${
-                              color === 'White' ? 'border-gray-300' : ''
+                              color === 'White' ? 'border-gray-200' : ''
                             }`}
                           />
                           <span className="text-xs">{color}</span>
@@ -638,7 +603,7 @@ const Products = () => {
                 <h3 className="text-lg sm:text-xl font-semibold">Error loading products</h3>
                 <p className="text-muted-foreground mt-2">{error}</p>
                 <Button 
-                  onClick={refreshProducts}
+                  onClick={() => window.location.reload()}
                   variant="outline" 
                   className="mt-4"
                 >
@@ -654,9 +619,6 @@ const Products = () => {
                         src={product.image_url} 
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/placeholder.svg';
-                        }}
                       />
                     </div>
                     
