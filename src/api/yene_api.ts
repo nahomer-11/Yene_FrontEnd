@@ -286,8 +286,15 @@ export const userService = {
 export const productService = {
   // Get all products
   getAllProducts: async (): Promise<Product[]> => {
-    const response = await apiClient.get('/products/');
-    return response.data;
+    try {
+      console.log('Fetching products from API');
+      const response = await apiClient.get('/products/');
+      console.log('Products received:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      throw error;
+    }
   },
 
   // Get single product by ID
