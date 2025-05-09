@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
@@ -84,48 +84,29 @@ const Products = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(8); // Show more products per page
-  
-  // Add a refresh trigger state
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Create a memoized fetchProducts function
-  const fetchProducts = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      console.log('Fetching products...');
-      const data = await productService.getAllProducts();
-      console.log('Products fetched:', data);
-      setProducts(data);
-      setFilteredProducts(data);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      setError('Failed to load products');
-      toast.error('Failed to load products');
-      setProducts([]);
-      setFilteredProducts([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Function to manually refresh products
-  const refreshProducts = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
-
-  // Fetch products when component mounts or refreshTrigger changes
+  // Fetch products from API
   useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        const data = await productService.getAllProducts();
+        setProducts(data);
+        setFilteredProducts(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products');
+        toast.error('Failed to load products');
+        setProducts([]);
+        setFilteredProducts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchProducts();
-    
-    // Set up an interval to periodically refresh products
-    const refreshInterval = setInterval(() => {
-      console.log('Auto-refreshing products...');
-      fetchProducts();
-    }, 30000); // Refresh every 30 seconds
-    
-    return () => clearInterval(refreshInterval);
-  }, [fetchProducts, refreshTrigger]);
+  }, []);
 
   // Extract all unique colors from the products
   const colors = [...new Set(products.flatMap(product => 
@@ -302,18 +283,7 @@ const Products = () => {
       <Navbar />
       <div className="container max-w-7xl mx-auto px-4 py-4 sm:py-6 flex-grow">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={refreshProducts}
-              className="flex items-center gap-1 text-xs"
-              title="Refresh product list"
-            >
-              Refresh
-            </Button>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
           
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
@@ -633,7 +603,7 @@ const Products = () => {
                 <h3 className="text-lg sm:text-xl font-semibold">Error loading products</h3>
                 <p className="text-muted-foreground mt-2">{error}</p>
                 <Button 
-                  onClick={refreshProducts}
+                  onClick={() => window.location.reload()}
                   variant="outline" 
                   className="mt-4"
                 >
