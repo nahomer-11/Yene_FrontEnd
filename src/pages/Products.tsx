@@ -86,26 +86,35 @@ const Products = () => {
   const [productsPerPage] = useState(8); // Show more products per page
 
   // Fetch products from API
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setIsLoading(true);
-        const data = await productService.getAllProducts();
-        setProducts(data);
-        setFilteredProducts(data);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching products:', err);
-        setError('Failed to load products');
-        toast.error('Failed to load products');
-        setProducts([]);
-        setFilteredProducts([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchProducts = async () => {
+    try {
+      setIsLoading(true);
+      const data = await productService.getAllProducts();
+      console.log('Products fetched:', data);
+      setProducts(data);
+      setFilteredProducts(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products');
+      toast.error('Failed to load products');
+      setProducts([]);
+      setFilteredProducts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProducts();
+    
+    // Set up an interval to periodically refresh the data
+    const intervalId = setInterval(() => {
+      fetchProducts();
+    }, 30000); // Refresh every 30 seconds
+    
+    // Clear interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   // Extract all unique colors from the products
@@ -115,6 +124,8 @@ const Products = () => {
 
   // Filter products when selections change
   useEffect(() => {
+    if (!products.length) return;
+    
     let result = [...products];
     
     if (searchQuery) {
@@ -603,7 +614,7 @@ const Products = () => {
                 <h3 className="text-lg sm:text-xl font-semibold">Error loading products</h3>
                 <p className="text-muted-foreground mt-2">{error}</p>
                 <Button 
-                  onClick={() => window.location.reload()}
+                  onClick={fetchProducts}
                   variant="outline" 
                   className="mt-4"
                 >
