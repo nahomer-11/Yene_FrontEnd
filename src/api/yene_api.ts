@@ -3,14 +3,12 @@ import axios from 'axios';
 // Base API configuration
 const API_URL = 'https://yenebackend.vercel.app/yene_api';
 
-// Create main axios instance with cache-busting
+// Create main axios instance - removing problematic cache-control headers
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
-    // Add cache control headers to prevent browser caching
-    'Cache-Control': 'no-cache',
-    'Pragma': 'no-cache',
+    // Removing Cache-Control and Pragma headers that cause CORS issues
   },
 });
 
