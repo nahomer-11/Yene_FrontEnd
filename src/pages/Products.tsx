@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
@@ -97,7 +98,7 @@ const Products = () => {
       // This is done in the API client, but we're adding a console check here
       if (data && Array.isArray(data)) {
         setProducts(data);
-        setFilteredProducts(data);
+        setFilteredProducts(data); // Initially show all products without filtering
         setError(null);
         console.log('Products state updated with', data.length, 'products');
       } else {
@@ -124,13 +125,14 @@ const Products = () => {
     product.variants ? product.variants.flatMap(variant => variant.color || '').filter(Boolean) : []
   ))];
 
-  // Filter products when selections change - with improved error handling
+  // FIXED: Modified filtering logic to include products without variants
   useEffect(() => {
     if (!products || products.length === 0) return;
     
     console.log('Filtering products based on criteria...');
-    let result = [...products];
+    let result = [...products]; // Start with all products
     
+    // Apply search query filter if exists
     if (searchQuery) {
       result = result.filter(product => 
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -138,6 +140,7 @@ const Products = () => {
       );
     }
     
+    // Apply category filter if any are selected
     if (selectedCategories.length > 0) {
       result = result.filter(product => 
         selectedCategories.some(cat => 
@@ -147,10 +150,10 @@ const Products = () => {
       );
     }
     
-    // Modified color filtering to include both products with and without variants
+    // FIXED: Modified color filtering to not exclude products without variants
     if (selectedColors.length > 0) {
       result = result.filter(product => {
-        // If product has no variants, always include it in results
+        // If product has no variants or empty variants array, always include it
         if (!product.variants || product.variants.length === 0) {
           return true;
         }
@@ -162,6 +165,7 @@ const Products = () => {
       });
     }
     
+    // Apply gender filter if any are selected
     if (selectedGenders.length > 0) {
       result = result.filter(product => 
         selectedGenders.some(gender => 
@@ -171,7 +175,7 @@ const Products = () => {
       );
     }
 
-    // Filter by price range - safely handling invalid prices
+    // Apply price range filter
     result = result.filter(
       product => {
         const price = product.base_price ? parseFloat(product.base_price) : 0;
@@ -651,7 +655,7 @@ const Products = () => {
             </div>
           )}
           
-          {/* Products Grid - 4 columns on desktop, 2 on mobile */}
+          {/* Products Grid - now includes all products with and without variants */}
           <div className={`grid gap-4 sm:gap-6 ${isFiltersVisible ? 'lg:col-span-4' : 'lg:col-span-5'} grid-cols-2 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}>
             {isLoading ? (
               // Loading skeleton
@@ -718,7 +722,7 @@ const Products = () => {
                               <span 
                                 key={`${product.id}-${variant.color}`}
                                 className={`block w-2 h-2 sm:w-3 sm:h-3 rounded-full border ${variant.color === 'White' ? 'border-gray-300' : ''}`}
-                                style={{ backgroundColor: getColorValue(variant.color) }}
+                                style={{ backgroundColor: getColorValue(variant.color || '') }}
                                 title={variant.color}
                               />
                             ))}
