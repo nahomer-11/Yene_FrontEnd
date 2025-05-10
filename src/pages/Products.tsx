@@ -158,8 +158,12 @@ const Products = () => {
     }
     
     if (selectedColors.length > 0) {
+      // Products with variants: check if any variant has the selected color
+      // Products without variants: include them in ALL color filters (to ensure they're shown)
       result = result.filter(product => 
-        product.variants && product.variants.some(variant => 
+        !product.variants || // Include products without variants
+        product.variants.length === 0 || // Include products with empty variants array
+        product.variants.some(variant => 
           variant.color && selectedColors.includes(variant.color)
         )
       );
@@ -251,7 +255,7 @@ const Products = () => {
         cartItems = [];
       }
       
-      // Safely access variant data
+      // Safely access variant data - handle products without variants
       const defaultVariant = product.variants && product.variants.length > 0 ? product.variants[0] : undefined;
       const variantImage = defaultVariant && 
                           defaultVariant.images && 
@@ -698,7 +702,8 @@ const Products = () => {
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="text-xs sm:text-sm text-muted-foreground">
-                            {product.variants && product.variants[0] ? product.variants[0].size : 'All Sizes'}
+                            {/* Safe display of size - show "Standard" for products without variants */}
+                            {product.variants && product.variants[0] ? product.variants[0].size : 'Standard'}
                           </p>
                           <CardTitle className="text-sm sm:text-base md:text-lg mt-0.5 sm:mt-1">{product.name}</CardTitle>
                         </div>
@@ -707,18 +712,25 @@ const Products = () => {
                     </CardHeader>
                     
                     <CardContent className="p-3 sm:p-4 pt-0 flex-grow">
-                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{product.description || 'No description available'}</p>
                       <div className="mt-2 sm:mt-3 flex items-center gap-1">
-                        {product.variants && product.variants.slice(0, 4).map((variant) => (
-                          <span 
-                            key={`${product.id}-${variant.color}`}
-                            className={`block w-2 h-2 sm:w-3 sm:h-3 rounded-full border ${variant.color === 'White' ? 'border-gray-300' : ''}`}
-                            style={{ backgroundColor: getColorValue(variant.color) }}
-                            title={variant.color}
-                          />
-                        ))}
-                        {product.variants && product.variants.length > 4 && (
-                          <span className="text-[10px] sm:text-xs text-muted-foreground">+{product.variants.length - 4}</span>
+                        {/* Only show color dots if product has variants with colors */}
+                        {product.variants && product.variants.length > 0 ? (
+                          <>
+                            {product.variants.slice(0, 4).map((variant) => (
+                              <span 
+                                key={`${product.id}-${variant.color}`}
+                                className={`block w-2 h-2 sm:w-3 sm:h-3 rounded-full border ${variant.color === 'White' ? 'border-gray-300' : ''}`}
+                                style={{ backgroundColor: getColorValue(variant.color) }}
+                                title={variant.color}
+                              />
+                            ))}
+                            {product.variants.length > 4 && (
+                              <span className="text-[10px] sm:text-xs text-muted-foreground">+{product.variants.length - 4}</span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-[10px] sm:text-xs text-muted-foreground">No variants</span>
                         )}
                       </div>
                     </CardContent>
