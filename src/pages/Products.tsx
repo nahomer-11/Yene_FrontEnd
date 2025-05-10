@@ -1,14 +1,15 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { productService, Product } from '@/api/yene_api';
 import { Footer } from '@/components/layout/Footer';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Pagination,
   PaginationContent,
@@ -18,8 +19,26 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
+// Product categories
+const productCategories = [
+  "T-shirt",
+  "Jacket",
+  "Hoodie",
+  "Leather Shoe",
+  "Sneakers",
+  "Track Suit",
+  "Suites",
+  "Shorts",
+  "Bundle",
+  "Trousers",
+  "Bags"
+];
+
 const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [isFiltersVisible, setIsFiltersVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -37,6 +56,7 @@ const Products = () => {
       
       if (data && Array.isArray(data)) {
         setProducts(data);
+        setFilteredProducts(data); // Set all products without filtering
         setError(null);
         console.log('Products state updated with', data.length, 'products');
       } else {
@@ -47,6 +67,7 @@ const Products = () => {
       setError('Failed to load products');
       toast.error('Failed to load products');
       setProducts([]);
+      setFilteredProducts([]);
     } finally {
       setIsLoading(false);
     }
@@ -57,6 +78,42 @@ const Products = () => {
     fetchProducts();
   }, [fetchProducts]);
   
+  // Apply category filters only (no variant filtering)
+  useEffect(() => {
+    if (!products || products.length === 0) return;
+    
+    // Only apply category filter when categories are selected
+    if (selectedCategories.length > 0) {
+      const filtered = products.filter(product => 
+        selectedCategories.some(cat => 
+          product.name.toLowerCase().includes(cat.toLowerCase()) || 
+          (product.description && product.description.toLowerCase().includes(cat.toLowerCase()))
+        )
+      );
+      setFilteredProducts(filtered);
+      
+      // Reset to first page when filters change
+      setCurrentPage(1);
+    } else {
+      // If no categories selected, show all products
+      setFilteredProducts(products);
+    }
+  }, [products, selectedCategories]);
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const clearFilters = () => {
+    setSelectedCategories([]);
+    setFilteredProducts(products);
+    toast.success('All filters cleared');
+  };
+
   // Helper function to map color names to CSS colors with error handling
   const getColorValue = (color: string) => {
     if (!color) return "#888888";
@@ -150,10 +207,10 @@ const Products = () => {
   // Get current products for pagination
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   
   // Calculate total pages
-  const totalPages = Math.ceil(products.length / productsPerPage);
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
   
   // Generate page numbers array for pagination
   const pageNumbers = [];
@@ -179,8 +236,62 @@ const Products = () => {
       <div className="container max-w-7xl mx-auto px-4 py-4 sm:py-6 flex-grow">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
+          
+          <Button
+            variant="outline"
+            onClick={() => setIsFiltersVisible(!isFiltersVisible)}
+            className="flex items-center gap-1"
+          >
+            <Filter className="h-4 w-4 mr-1" />
+            Filters
+          </Button>
         </div>
-       
+        
+        {/* Category filters */}
+        {isFiltersVisible && (
+          <div className="mb-6 p-4 border rounded-lg bg-background shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-medium">Product Categories</h2>
+              {selectedCategories.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  Clear all
+                </Button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              {productCategories.map(category => (
+                <div key={category} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`category-${category}`} 
+                    checked={selectedCategories.includes(category)}
+                    onCheckedChange={() => toggleCategory(category)}
+                  />
+                  <Label htmlFor={`category-${category}`} className="text-sm">
+                    {category}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Active filters display */}
+        {selectedCategories.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            <div className="text-sm text-muted-foreground">
+              Filters: 
+            </div>
+            {selectedCategories.map(category => (
+              <div key={`filter-${category}`} 
+                className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full text-xs"
+              >
+                {category}
+              </div>
+            ))}
+          </div>
+        )}
+        
         <div className="grid grid-cols-2 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {isLoading ? (
             // Loading skeleton
@@ -277,20 +388,20 @@ const Products = () => {
           ) : (
             <div className="col-span-full text-center py-8 sm:py-12">
               <h3 className="text-lg sm:text-xl font-semibold">No products found</h3>
-              <p className="text-sm sm:text-base text-muted-foreground mt-2">No products are available at the moment</p>
+              <p className="text-sm sm:text-base text-muted-foreground mt-2">Try changing your filter criteria</p>
               <Button 
-                onClick={() => fetchProducts()}
+                onClick={clearFilters}
                 variant="outline" 
                 className="mt-4"
               >
-                Refresh
+                Clear filters
               </Button>
             </div>
           )}
         </div>
         
         {/* Pagination */}
-        {products.length > 0 && (
+        {filteredProducts.length > productsPerPage && (
           <div className="mt-6 sm:mt-8">
             <Pagination>
               <PaginationContent>
