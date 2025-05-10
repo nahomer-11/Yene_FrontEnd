@@ -147,16 +147,19 @@ const Products = () => {
       );
     }
     
+    // Modified color filtering to include both products with and without variants
     if (selectedColors.length > 0) {
-      // Products with variants: check if any variant has the selected color
-      // Products without variants: always include them regardless of selected colors
-      result = result.filter(product => 
-        !product.variants || // Always include products without variants
-        product.variants.length === 0 || // Also include products with empty variants array
-        product.variants.some(variant => 
+      result = result.filter(product => {
+        // If product has no variants, always include it in results
+        if (!product.variants || product.variants.length === 0) {
+          return true;
+        }
+        
+        // For products with variants, check if any variant matches selected colors
+        return product.variants.some(variant => 
           variant.color && selectedColors.includes(variant.color)
-        )
-      );
+        );
+      });
     }
     
     if (selectedGenders.length > 0) {
