@@ -114,19 +114,9 @@ const Products = () => {
     }
   }, []);
 
-  // Fetch products from API on component mount
+  // Fetch products from API on component mount - removed auto refresh
   useEffect(() => {
     fetchProducts();
-    
-    // Set up an interval to refresh products periodically
-    // This ensures newly added products appear without manual refresh
-    const refreshInterval = setInterval(() => {
-      console.log('Refreshing products data...');
-      fetchProducts();
-    }, 30000); // Refresh every 30 seconds
-    
-    // Clean up interval on component unmount
-    return () => clearInterval(refreshInterval);
   }, [fetchProducts]);
 
   // Extract all unique colors from the products - safely handling undefined
@@ -159,10 +149,10 @@ const Products = () => {
     
     if (selectedColors.length > 0) {
       // Products with variants: check if any variant has the selected color
-      // Products without variants: include them in ALL color filters (to ensure they're shown)
+      // Products without variants: always include them regardless of selected colors
       result = result.filter(product => 
-        !product.variants || // Include products without variants
-        product.variants.length === 0 || // Include products with empty variants array
+        !product.variants || // Always include products without variants
+        product.variants.length === 0 || // Also include products with empty variants array
         product.variants.some(variant => 
           variant.color && selectedColors.includes(variant.color)
         )
@@ -268,7 +258,7 @@ const Products = () => {
       const basePrice = product.base_price ? parseFloat(product.base_price) : 0;
       
       // Check if the product already exists in the cart
-      const existingItemIndex = cartItems.findIndex(item => 
+      const existingItemIndex = cartItems.findIndex((item: any) => 
         item.productId === product.id && 
         item.selectedColor === (defaultVariant ? defaultVariant.color : '') &&
         item.selectedSize === (defaultVariant ? defaultVariant.size : '')
@@ -301,6 +291,10 @@ const Products = () => {
           description: `${product.name} added to your cart`,
         });
       }
+      
+      // Dispatch custom event to update cart count in navbar
+      window.dispatchEvent(new Event('cartUpdated'));
+      
     } catch (err) {
       console.error('Error adding item to cart:', err);
       toast.error('Could not add item to cart');
