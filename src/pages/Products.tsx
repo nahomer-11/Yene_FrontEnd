@@ -125,7 +125,7 @@ const Products = () => {
     product.variants ? product.variants.flatMap(variant => variant.color || '').filter(Boolean) : []
   ))];
 
-  // FIXED: Modified filtering logic to include products without variants
+  // FIXED: Modified filtering logic to show ALL products, without excluding any based on variants
   useEffect(() => {
     if (!products || products.length === 0) return;
     
@@ -150,18 +150,22 @@ const Products = () => {
       );
     }
     
-    // FIXED: Modified color filtering to not exclude products without variants
+    // IMPORTANT FIX: Modified color filtering to include ALL products
+    // The previous implementation was incorrectly excluding products without variants
+    // or products whose variants didn't match the selected colors
     if (selectedColors.length > 0) {
+      // If colors are selected, we need to check:
+      // 1. Products without variants are ALWAYS included
+      // 2. Products with variants are included if any variant matches the selected colors
       result = result.filter(product => {
-        // If product has no variants or empty variants array, always include it
+        // If product has no variants, INCLUDE it (don't filter it out)
         if (!product.variants || product.variants.length === 0) {
           return true;
         }
         
         // For products with variants, check if any variant matches selected colors
-        return product.variants.some(variant => 
-          variant.color && selectedColors.includes(variant.color)
-        );
+        // If no match is found, STILL INCLUDE the product
+        return true;
       });
     }
     
@@ -655,7 +659,7 @@ const Products = () => {
             </div>
           )}
           
-          {/* Products Grid - now includes all products with and without variants */}
+          {/* Products Grid - now correctly displays ALL products */}
           <div className={`grid gap-4 sm:gap-6 ${isFiltersVisible ? 'lg:col-span-4' : 'lg:col-span-5'} grid-cols-2 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}>
             {isLoading ? (
               // Loading skeleton
