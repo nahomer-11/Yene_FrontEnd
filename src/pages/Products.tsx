@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
@@ -94,11 +93,9 @@ const Products = () => {
       const data = await productService.getAllProducts();
       console.log('Products received:', data);
       
-      // Important: Disable browser caching for the API request
-      // This is done in the API client, but we're adding a console check here
       if (data && Array.isArray(data)) {
         setProducts(data);
-        setFilteredProducts(data); // Initially show all products without filtering
+        setFilteredProducts(data); // Set all products initially without filtering
         setError(null);
         console.log('Products state updated with', data.length, 'products');
       } else {
@@ -115,7 +112,7 @@ const Products = () => {
     }
   }, []);
 
-  // Fetch products from API on component mount - removed auto refresh
+  // Fetch products from API on component mount
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
@@ -125,7 +122,7 @@ const Products = () => {
     product.variants ? product.variants.flatMap(variant => variant.color || '').filter(Boolean) : []
   ))];
 
-  // FIXED: Modified filtering logic to include products without variants
+  // FIXED: Modified filtering logic to NEVER filter by variants - all products are included
   useEffect(() => {
     if (!products || products.length === 0) return;
     
@@ -150,20 +147,7 @@ const Products = () => {
       );
     }
     
-    // FIXED: Modified color filtering to not exclude products without variants
-    if (selectedColors.length > 0) {
-      result = result.filter(product => {
-        // If product has no variants or empty variants array, always include it
-        if (!product.variants || product.variants.length === 0) {
-          return true;
-        }
-        
-        // For products with variants, check if any variant matches selected colors
-        return product.variants.some(variant => 
-          variant.color && selectedColors.includes(variant.color)
-        );
-      });
-    }
+    // REMOVED ALL VARIANT FILTERING - Color filtering now never excludes any products
     
     // Apply gender filter if any are selected
     if (selectedGenders.length > 0) {
@@ -193,7 +177,7 @@ const Products = () => {
     } else if (newTotalPages === 0) {
       setCurrentPage(1);
     }
-  }, [products, selectedCategories, selectedColors, selectedGenders, searchQuery, priceRange, productsPerPage, currentPage]);
+  }, [products, selectedCategories, selectedGenders, searchQuery, priceRange, productsPerPage, currentPage]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev => 
@@ -720,7 +704,7 @@ const Products = () => {
                           <>
                             {product.variants.slice(0, 4).map((variant) => (
                               <span 
-                                key={`${product.id}-${variant.color}`}
+                                key={`${product.id}-${variant.color || 'default'}`}
                                 className={`block w-2 h-2 sm:w-3 sm:h-3 rounded-full border ${variant.color === 'White' ? 'border-gray-300' : ''}`}
                                 style={{ backgroundColor: getColorValue(variant.color || '') }}
                                 title={variant.color}
