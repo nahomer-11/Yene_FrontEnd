@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Button } from '@/components/ui/button';
@@ -84,16 +84,25 @@ const Products = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage] = useState(8); // Show more products per page
-
-  // Fetch products from API
-  const fetchProducts = async () => {
+  
+  // Create a fetchProducts function that can be reused
+  const fetchProducts = useCallback(async () => {
     try {
       setIsLoading(true);
+      console.log('Fetching products from API...');
       const data = await productService.getAllProducts();
-      console.log('Products fetched:', data);
-      setProducts(data);
-      setFilteredProducts(data);
-      setError(null);
+      console.log('Products received:', data);
+      
+      // Important: Disable browser caching for the API request
+      // This is done in the API client, but we're adding a console check here
+      if (data && Array.isArray(data)) {
+        setProducts(data);
+        setFilteredProducts(data);
+        setError(null);
+        console.log('Products state updated with', data.length, 'products');
+      } else {
+        throw new Error('Invalid data format received');
+      }
     } catch (err) {
       console.error('Error fetching products:', err);
       setError('Failed to load products');
@@ -103,19 +112,22 @@ const Products = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
+  // Fetch products from API on component mount
   useEffect(() => {
     fetchProducts();
     
-    // Set up an interval to periodically refresh the data
-    const intervalId = setInterval(() => {
+    // Set up an interval to refresh products periodically
+    // This ensures newly added products appear without manual refresh
+    const refreshInterval = setInterval(() => {
+      console.log('Refreshing products data...');
       fetchProducts();
     }, 30000); // Refresh every 30 seconds
     
-    // Clear interval on component unmount
-    return () => clearInterval(intervalId);
-  }, []);
+    // Clean up interval on component unmount
+    return () => clearInterval(refreshInterval);
+  }, [fetchProducts]);
 
   // Extract all unique colors from the products
   const colors = [...new Set(products.flatMap(product => 
@@ -124,8 +136,9 @@ const Products = () => {
 
   // Filter products when selections change
   useEffect(() => {
-    if (!products.length) return;
+    if (!products || products.length === 0) return;
     
+    console.log('Filtering products based on criteria...');
     let result = [...products];
     
     if (searchQuery) {
@@ -169,6 +182,7 @@ const Products = () => {
       }
     );
     
+    console.log('Filtered products:', result.length);
     setFilteredProducts(result);
     setCurrentPage(1); // Reset to first page when filters change
   }, [products, selectedCategories, selectedColors, selectedGenders, searchQuery, priceRange]);
@@ -614,7 +628,7 @@ const Products = () => {
                 <h3 className="text-lg sm:text-xl font-semibold">Error loading products</h3>
                 <p className="text-muted-foreground mt-2">{error}</p>
                 <Button 
-                  onClick={fetchProducts}
+                  onClick={() => fetchProducts()}
                   variant="outline" 
                   className="mt-4"
                 >
