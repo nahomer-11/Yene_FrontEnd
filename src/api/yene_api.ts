@@ -3,29 +3,29 @@ import axios from 'axios';
 // Base API configuration
 const API_URL = 'https://yenebackend.vercel.app/yene_api';
 
-// Create main axios instance
+// Create main axios instance with cache-busting
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
+    // Add cache control headers to prevent browser caching
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
   },
 });
 
-// Request interceptor for adding auth token
+// Request interceptor for adding auth token and cache busting
 apiClient.interceptors.request.use(
   (config) => {
+    // Add auth token if available
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     
-    // Add cache-busting parameter to all GET requests
-    if (config.method?.toLowerCase() === 'get') {
-      config.params = {
-        ...config.params,
-        _: new Date().getTime() // Add timestamp to prevent caching
-      };
-    }
+    // Add timestamp parameter to URLs to prevent caching
+    const separator = config.url?.includes('?') ? '&' : '?';
+    config.url = `${config.url}${separator}_t=${new Date().getTime()}`;
     
     return config;
   },
@@ -132,7 +132,7 @@ export interface Product {
   description: string;
   image_url: string;
   base_price: string;
-  variants: ProductVariant[];
+  variants?: ProductVariant[]; // Make variants optional since some products don't have variants
 }
 
 export interface FeaturedCategory {
@@ -298,19 +298,7 @@ export const productService = {
       console.log('Fetching products from API');
       const response = await apiClient.get('/products/');
       console.log('Products received:', response.data);
-      
-      // Ensure we always return an array even if API returns null/undefined
-      if (!response.data) {
-        console.warn('API returned empty data for products');
-        return [];
-      }
-      
-      // Make sure variants is always an array even if API doesn't include it
-      const products = Array.isArray(response.data) ? response.data : [];
-      return products.map((product: any) => ({
-        ...product,
-        variants: Array.isArray(product.variants) ? product.variants : []
-      }));
+      return response.data;
     } catch (error) {
       console.error('Error fetching products:', error);
       throw error;
@@ -320,13 +308,7 @@ export const productService = {
   // Get single product by ID
   getProductById: async (productId: string): Promise<Product> => {
     const response = await apiClient.get(`/products/${productId}/`);
-    const product = response.data;
-    
-    // Ensure variants is an array
-    return {
-      ...product,
-      variants: Array.isArray(product.variants) ? product.variants : []
-    };
+    return response.data;
   },
 
   // Get all featured categories
@@ -355,14 +337,12 @@ export const orderService = {
 export const adminService = {
   // Admin Products
   getAdminProducts: async (): Promise<Product[]> => {
-    const timestamp = new Date().getTime();
-    const response = await apiClient.get(`/dashboard/yene_admin/products/?_=${timestamp}`);
+    const response = await apiClient.get('/dashboard/yene_admin/products/');
     return response.data;
   },
 
   getAdminProductById: async (productId: string): Promise<Product> => {
-    const timestamp = new Date().getTime();
-    const response = await apiClient.get(`/dashboard/yene_admin/products/${productId}/?_=${timestamp}`);
+    const response = await apiClient.get(`/dashboard/yene_admin/products/${productId}/`);
     return response.data;
   },
 
@@ -388,14 +368,12 @@ export const adminService = {
 
   // Admin Orders
   getAdminOrders: async (): Promise<AdminOrder[]> => {
-    const timestamp = new Date().getTime();
-    const response = await apiClient.get(`/dashboard/yene_admin/orders/?_=${timestamp}`);
+    const response = await apiClient.get('/dashboard/yene_admin/orders/');
     return response.data;
   },
 
   getOrderByCode: async (orderCode: string): Promise<AdminOrder> => {
-    const timestamp = new Date().getTime();
-    const response = await apiClient.get(`/dashboard/yene_admin/orders/${orderCode}/?_=${timestamp}`);
+    const response = await apiClient.get(`/dashboard/yene_admin/orders/${orderCode}/`);
     return response.data;
   },
 
