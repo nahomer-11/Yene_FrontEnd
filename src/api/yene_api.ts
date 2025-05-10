@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 // Base API configuration
@@ -19,6 +18,15 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+    
+    // Add cache-busting parameter to all GET requests
+    if (config.method?.toLowerCase() === 'get') {
+      config.params = {
+        ...config.params,
+        _: new Date().getTime() // Add timestamp to prevent caching
+      };
+    }
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -288,11 +296,21 @@ export const productService = {
   getAllProducts: async (): Promise<Product[]> => {
     try {
       console.log('Fetching products from API');
-      // Add cache-busting timestamp parameter to prevent browser caching
-      const timestamp = new Date().getTime();
-      const response = await apiClient.get(`/products/?_=${timestamp}`);
+      const response = await apiClient.get('/products/');
       console.log('Products received:', response.data);
-      return response.data;
+      
+      // Ensure we always return an array even if API returns null/undefined
+      if (!response.data) {
+        console.warn('API returned empty data for products');
+        return [];
+      }
+      
+      // Make sure variants is always an array even if API doesn't include it
+      const products = Array.isArray(response.data) ? response.data : [];
+      return products.map((product: any) => ({
+        ...product,
+        variants: Array.isArray(product.variants) ? product.variants : []
+      }));
     } catch (error) {
       console.error('Error fetching products:', error);
       throw error;
@@ -301,9 +319,14 @@ export const productService = {
 
   // Get single product by ID
   getProductById: async (productId: string): Promise<Product> => {
-    const timestamp = new Date().getTime();
-    const response = await apiClient.get(`/products/${productId}/?_=${timestamp}`);
-    return response.data;
+    const response = await apiClient.get(`/products/${productId}/`);
+    const product = response.data;
+    
+    // Ensure variants is an array
+    return {
+      ...product,
+      variants: Array.isArray(product.variants) ? product.variants : []
+    };
   },
 
   // Get all featured categories
