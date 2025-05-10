@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
@@ -39,6 +38,7 @@ import {
 } from "@/components/ui/collapsible";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Updated product categories with your requested values
 const productCategories = [
@@ -75,7 +75,7 @@ const Products = () => {
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]); // Increased upper range
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,12 +129,12 @@ const Products = () => {
     return () => clearInterval(refreshInterval);
   }, [fetchProducts]);
 
-  // Extract all unique colors from the products
+  // Extract all unique colors from the products - safely handling undefined
   const colors = [...new Set(products.flatMap(product => 
-    product.variants ? product.variants.flatMap(variant => variant.color) : []
+    product.variants ? product.variants.flatMap(variant => variant.color || '').filter(Boolean) : []
   ))];
 
-  // Filter products when selections change
+  // Filter products when selections change - with improved error handling
   useEffect(() => {
     if (!products || products.length === 0) return;
     
@@ -144,7 +144,7 @@ const Products = () => {
     if (searchQuery) {
       result = result.filter(product => 
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase())
+        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
     
@@ -152,7 +152,7 @@ const Products = () => {
       result = result.filter(product => 
         selectedCategories.some(cat => 
           product.name.toLowerCase().includes(cat.toLowerCase()) || 
-          product.description.toLowerCase().includes(cat.toLowerCase())
+          (product.description && product.description.toLowerCase().includes(cat.toLowerCase()))
         )
       );
     }
@@ -160,7 +160,7 @@ const Products = () => {
     if (selectedColors.length > 0) {
       result = result.filter(product => 
         product.variants && product.variants.some(variant => 
-          selectedColors.includes(variant.color)
+          variant.color && selectedColors.includes(variant.color)
         )
       );
     }
@@ -169,23 +169,30 @@ const Products = () => {
       result = result.filter(product => 
         selectedGenders.some(gender => 
           product.name.toLowerCase().includes(gender.toLowerCase()) || 
-          product.description.toLowerCase().includes(gender.toLowerCase())
+          (product.description && product.description.toLowerCase().includes(gender.toLowerCase()))
         )
       );
     }
 
-    // Filter by price range
+    // Filter by price range - safely handling invalid prices
     result = result.filter(
       product => {
-        const totalPrice = parseFloat(product.base_price) || 0;
-        return totalPrice >= priceRange[0] && totalPrice <= priceRange[1];
+        const price = product.base_price ? parseFloat(product.base_price) : 0;
+        return !isNaN(price) && price >= priceRange[0] && price <= priceRange[1];
       }
     );
     
     console.log('Filtered products:', result.length);
     setFilteredProducts(result);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [products, selectedCategories, selectedColors, selectedGenders, searchQuery, priceRange]);
+    
+    // Reset to first page when filters change BUT ensure we stay on a valid page
+    const newTotalPages = Math.ceil(result.length / productsPerPage);
+    if (currentPage > newTotalPages && newTotalPages > 0) {
+      setCurrentPage(newTotalPages);
+    } else if (newTotalPages === 0) {
+      setCurrentPage(1);
+    }
+  }, [products, selectedCategories, selectedColors, selectedGenders, searchQuery, priceRange, productsPerPage, currentPage]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev => 
@@ -227,40 +234,79 @@ const Products = () => {
     setSelectedColors([]);
     setSelectedGenders([]);
     setSearchQuery('');
-    setPriceRange([0, 5000]);
+    setPriceRange([0, 10000]); // Reset price range to default
     toast.success('All filters cleared');
   };
 
   const handleAddToCart = (product: Product) => {
-    // Get existing cart items from localStorage
-    const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
-    
-    // Create a new item with default selections
-    const defaultVariant = product.variants && product.variants[0] ? product.variants[0] : undefined;
-    const variantImage = defaultVariant && defaultVariant.images && defaultVariant.images[0] ? defaultVariant.images[0].image_url : '';
-    
-    const newItem = {
-      id: Date.now().toString(),
-      productId: product.id,
-      name: product.name,
-      price: parseFloat(product.base_price) + (defaultVariant ? parseFloat(defaultVariant.extra_price || '0') : 0),
-      quantity: 1,
-      selectedColor: defaultVariant ? defaultVariant.color : '',
-      selectedSize: defaultVariant ? defaultVariant.size : '',
-      image: product.image_url || variantImage
-    };
-    
-    // Add to cart
-    cartItems.push(newItem);
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-    
-    toast.success(`Added to cart`, {
-      description: `${product.name} added to your cart`,
-    });
+    try {
+      // Get existing cart items from localStorage
+      let cartItems = [];
+      try {
+        const savedCart = localStorage.getItem('cart');
+        cartItems = savedCart ? JSON.parse(savedCart) : [];
+        if (!Array.isArray(cartItems)) cartItems = [];
+      } catch (e) {
+        console.error('Error parsing cart from localStorage:', e);
+        cartItems = [];
+      }
+      
+      // Safely access variant data
+      const defaultVariant = product.variants && product.variants.length > 0 ? product.variants[0] : undefined;
+      const variantImage = defaultVariant && 
+                          defaultVariant.images && 
+                          defaultVariant.images.length > 0 ? 
+                          defaultVariant.images[0].image_url : '';
+      
+      const extraPrice = defaultVariant && defaultVariant.extra_price ? 
+                         parseFloat(defaultVariant.extra_price) : 0;
+                         
+      const basePrice = product.base_price ? parseFloat(product.base_price) : 0;
+      
+      // Check if the product already exists in the cart
+      const existingItemIndex = cartItems.findIndex(item => 
+        item.productId === product.id && 
+        item.selectedColor === (defaultVariant ? defaultVariant.color : '') &&
+        item.selectedSize === (defaultVariant ? defaultVariant.size : '')
+      );
+      
+      if (existingItemIndex !== -1) {
+        // Increase quantity if product already in cart
+        cartItems[existingItemIndex].quantity += 1;
+        localStorage.setItem('cart', JSON.stringify(cartItems));
+        toast.success(`Updated quantity in cart`, {
+          description: `${product.name} quantity increased`,
+        });
+      } else {
+        // Add new item
+        const newItem = {
+          id: Date.now().toString(),
+          productId: product.id,
+          name: product.name,
+          price: !isNaN(basePrice + extraPrice) ? basePrice + extraPrice : basePrice,
+          quantity: 1,
+          selectedColor: defaultVariant ? defaultVariant.color || '' : '',
+          selectedSize: defaultVariant ? defaultVariant.size || '' : '',
+          image: product.image_url || variantImage
+        };
+        
+        cartItems.push(newItem);
+        localStorage.setItem('cart', JSON.stringify(cartItems));
+        
+        toast.success(`Added to cart`, {
+          description: `${product.name} added to your cart`,
+        });
+      }
+    } catch (err) {
+      console.error('Error adding item to cart:', err);
+      toast.error('Could not add item to cart');
+    }
   };
 
-  // Helper function to map color names to CSS colors
+  // Helper function to map color names to CSS colors with error handling
   const getColorValue = (color: string) => {
+    if (!color) return "#888888";
+    
     const colorMap: Record<string, string> = {
       "Black": "#000000",
       "White": "#FFFFFF", 
@@ -274,7 +320,8 @@ const Products = () => {
       "Gray": "#6B7280"
     };
     
-    return colorMap[color] || "#888888";
+    const normalizedColor = color.charAt(0).toUpperCase() + color.slice(1).toLowerCase();
+    return colorMap[normalizedColor] || colorMap[color] || "#888888";
   };
   
   // Get current products for pagination
@@ -590,7 +637,7 @@ const Products = () => {
                           <span 
                             style={{ backgroundColor: getColorValue(color) }} 
                             className={`w-6 h-6 rounded-full border ${
-                              color === 'White' ? 'border-gray-200' : ''
+                              color === 'White' ? 'border-gray-300' : ''
                             }`}
                           />
                           <span className="text-xs">{color}</span>
