@@ -288,7 +288,9 @@ export const productService = {
   getAllProducts: async (): Promise<Product[]> => {
     try {
       console.log('Fetching products from API');
-      const response = await apiClient.get('/products/');
+      // Add cache-busting timestamp parameter to prevent browser caching
+      const timestamp = new Date().getTime();
+      const response = await apiClient.get(`/products/?_=${timestamp}`);
       console.log('Products received:', response.data);
       return response.data;
     } catch (error) {
@@ -299,7 +301,8 @@ export const productService = {
 
   // Get single product by ID
   getProductById: async (productId: string): Promise<Product> => {
-    const response = await apiClient.get(`/products/${productId}/`);
+    const timestamp = new Date().getTime();
+    const response = await apiClient.get(`/products/${productId}/?_=${timestamp}`);
     return response.data;
   },
 
@@ -329,12 +332,14 @@ export const orderService = {
 export const adminService = {
   // Admin Products
   getAdminProducts: async (): Promise<Product[]> => {
-    const response = await apiClient.get('/dashboard/yene_admin/products/');
+    const timestamp = new Date().getTime();
+    const response = await apiClient.get(`/dashboard/yene_admin/products/?_=${timestamp}`);
     return response.data;
   },
 
   getAdminProductById: async (productId: string): Promise<Product> => {
-    const response = await apiClient.get(`/dashboard/yene_admin/products/${productId}/`);
+    const timestamp = new Date().getTime();
+    const response = await apiClient.get(`/dashboard/yene_admin/products/${productId}/?_=${timestamp}`);
     return response.data;
   },
 
@@ -360,12 +365,14 @@ export const adminService = {
 
   // Admin Orders
   getAdminOrders: async (): Promise<AdminOrder[]> => {
-    const response = await apiClient.get('/dashboard/yene_admin/orders/');
+    const timestamp = new Date().getTime();
+    const response = await apiClient.get(`/dashboard/yene_admin/orders/?_=${timestamp}`);
     return response.data;
   },
 
   getOrderByCode: async (orderCode: string): Promise<AdminOrder> => {
-    const response = await apiClient.get(`/dashboard/yene_admin/orders/${orderCode}/`);
+    const timestamp = new Date().getTime();
+    const response = await apiClient.get(`/dashboard/yene_admin/orders/${orderCode}/?_=${timestamp}`);
     return response.data;
   },
 
