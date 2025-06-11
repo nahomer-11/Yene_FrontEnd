@@ -42,27 +42,33 @@ const Cart = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-  const fetchCart = () => {
-    setIsLoading(true);
-    try {
-      const storedCart = localStorage.getItem('cart');
-      const parsed = storedCart ? JSON.parse(storedCart) : [];
-      setCartItems(Array.isArray(parsed) ? parsed : []);
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-      toast.error("Failed to load cart");
-      setCartItems([]); // fallback
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const fetchCart = () => {
+      setIsLoading(true);
+      try {
+        const storedCart = localStorage.getItem('cart');
+        const parsed = storedCart ? JSON.parse(storedCart) : [];
+        // Ensure we always have an array
+        setCartItems(Array.isArray(parsed) ? parsed : []);
+      } catch (error) {
+        console.error("Error fetching cart:", error);
+        toast.error("Failed to load cart");
+        setCartItems([]); // fallback to empty array
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  fetchCart();
-}, []);
-
+    fetchCart();
+  }, []);
 
   const updateQuantity = (id: string, newQuantity: number) => {
     if (newQuantity < 1) return;
+    
+    // Ensure cartItems is an array before mapping
+    if (!Array.isArray(cartItems)) {
+      console.error("cartItems is not an array");
+      return;
+    }
     
     const updatedCart = cartItems.map(item => 
       item.id === id ? { ...item, quantity: newQuantity } : item
@@ -74,76 +80,86 @@ const Cart = () => {
   };
 
   const removeItem = (id: string) => {
+    // Ensure cartItems is an array before filtering
+    if (!Array.isArray(cartItems)) {
+      console.error("cartItems is not an array");
+      return;
+    }
+    
     const updatedCart = cartItems.filter(item => item.id !== id);
     setCartItems(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
     toast.success("Item removed from cart");
   };
 
-const handleSubmitOrder = async () => {
-  if (!guestName || !guestPhone || !guestCity || !guestAddress) {
-    toast.error("Please fill in all required fields");
-    return;
-  }
+  const handleSubmitOrder = async () => {
+    if (!guestName || !guestPhone || !guestCity || !guestAddress) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
 
-  if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
-    toast.error("Your cart is empty");
-    return;
-  }
+    if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
 
-  setIsSubmitting(true);
+    setIsSubmitting(true);
 
-  try {
-    const orderItems = cartItems.map(item =>
-      item.productVariantId
-        ? {
-            product_variant: item.productVariantId,
-            quantity: item.quantity,
-          }
-        : {
-            product: item.productId,
-            quantity: item.quantity,
-          }
-    );
+    try {
+      const orderItems = cartItems.map(item =>
+        item.productVariantId
+          ? {
+              product_variant: item.productVariantId,
+              quantity: item.quantity,
+            }
+          : {
+              product: item.productId,
+              quantity: item.quantity,
+            }
+      );
 
-    const orderData = {
-      delivery_eta_days: 10,
-      customer_note: customerNote || "50% advance payment",
-      guest_name: guestName,
-      guest_phone: guestPhone,
-      guest_city: guestCity,
-      guest_address: guestAddress,
-      items: orderItems,
-    };
+      const orderData = {
+        delivery_eta_days: 10,
+        customer_note: customerNote || "50% advance payment",
+        guest_name: guestName,
+        guest_phone: guestPhone,
+        guest_city: guestCity,
+        guest_address: guestAddress,
+        items: orderItems,
+      };
 
-    await orderService.createOrder(orderData);
+      await orderService.createOrder(orderData);
 
-    localStorage.setItem('cart', JSON.stringify([]));
-    setCartItems([]);
-    toast.success("Order submitted successfully");
-    setIsDialogOpen(false);
-    navigate('/');
-  } catch (error) {
-    console.error("Error submitting order:", error);
-    toast.error("Failed to submit order. Please try again.");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-
-
+      localStorage.setItem('cart', JSON.stringify([]));
+      setCartItems([]);
+      toast.success("Order submitted successfully");
+      setIsDialogOpen(false);
+      navigate('/');
+    } catch (error) {
+      console.error("Error submitting order:", error);
+      toast.error("Failed to submit order. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const calculateTotal = () => {
+    // Ensure cartItems is an array before reducing
+    if (!Array.isArray(cartItems)) {
+      return 0;
+    }
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
+
+  // Safe check for cart items length
+  const safeCartItems = Array.isArray(cartItems) ? cartItems : [];
 
   return (
     <div className="min-h-screen flex flex-col">
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Your Cart</h1>
         
-        {cartItems.length === 0 && !isLoading ? (
+        {safeCartItems.length === 0 && !isLoading ? (
           <div className="text-center py-12">
             <h2 className="text-2xl font-semibold mb-4">Your cart is empty</h2>
             <p className="text-muted-foreground mb-6">Browse our products and add something you like!</p>
@@ -155,7 +171,7 @@ const handleSubmitOrder = async () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
-              {cartItems.map(item => (
+              {safeCartItems.map(item => (
                 <div 
                   key={item.id} 
                   className="flex flex-col md:flex-row items-center bg-card rounded-lg p-4 gap-4"
@@ -345,3 +361,4 @@ const handleSubmitOrder = async () => {
 };
 
 export default Cart;
+
