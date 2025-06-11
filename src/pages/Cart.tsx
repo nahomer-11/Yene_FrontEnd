@@ -80,47 +80,52 @@ const Cart = () => {
     toast.success("Item removed from cart");
   };
 
-  const handleSubmitOrder = async () => {
-    if (!guestName || !guestPhone || !guestCity || !guestAddress) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Transform cart items to order items format
-      const orderItems = cartItems.map(item => ({
-        product_variant: item.productVariantId,
-        quantity: item.quantity
-      }));
+const handleSubmitOrder = async () => {
+  if (!guestName || !guestPhone || !guestCity || !guestAddress) {
+    toast.error("Please fill in all required fields");
+    return;
+  }
 
-      // Create order using the orderService from your API
-      const orderData = {
-        delivery_eta_days: 10, // As mentioned in your UI "10 days delivery"
-        customer_note: customerNote || "50% advance payment",
-        guest_name: guestName,
-        guest_phone: guestPhone,
-        guest_city: guestCity,
-        guest_address: guestAddress,
-        items: orderItems
-      };
+  setIsSubmitting(true);
 
-      await orderService.createOrder(orderData);
-      
-      // Clear cart after successful order
-      localStorage.setItem('cart', JSON.stringify([]));
-      
-      toast.success("Order submitted successfully");
-      setIsDialogOpen(false);
-      navigate('/orders'); // Navigate to orders page
-    } catch (error) {
-      console.error("Error submitting order:", error);
-      toast.error("Failed to submit order. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  try {
+    // Ensure each item has either a variant or a product ID
+    const orderItems = cartItems.map(item => {
+      return item.productVariantId
+        ? {
+            product_variant: item.productVariantId,
+            quantity: item.quantity,
+          }
+        : {
+            product: item.productId, // Make sure your cart item includes productId
+            quantity: item.quantity,
+          };
+    });
+
+    const orderData = {
+      delivery_eta_days: 10,
+      customer_note: customerNote || "50% advance payment",
+      guest_name: guestName,
+      guest_phone: guestPhone,
+      guest_city: guestCity,
+      guest_address: guestAddress,
+      items: orderItems,
+    };
+
+    await orderService.createOrder(orderData);
+
+    localStorage.setItem("cart", JSON.stringify([]));
+    toast.success("Order submitted successfully");
+    setIsDialogOpen(false);
+    navigate("/orders");
+  } catch (error) {
+    console.error("Error submitting order:", error);
+    toast.error("Failed to submit order. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
