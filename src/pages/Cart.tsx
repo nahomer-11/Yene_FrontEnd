@@ -89,6 +89,15 @@ const handleSubmitOrder = async () => {
   setIsSubmitting(true);
 
   try {
+    // 💡 Make sure cartItems is defined and an array
+    const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
+
+    if (!cartItems.length) {
+      toast.error("Your cart is empty");
+      setIsSubmitting(false);
+      return;
+    }
+
     // Ensure each item has either a variant or a product ID
     const orderItems = cartItems.map(item => {
       return item.productVariantId
@@ -114,10 +123,10 @@ const handleSubmitOrder = async () => {
 
     await orderService.createOrder(orderData);
 
-    localStorage.setItem("cart", JSON.stringify([]));
+    localStorage.setItem('cart', JSON.stringify([]));
     toast.success("Order submitted successfully");
     setIsDialogOpen(false);
-    navigate("/");
+    navigate('/');
   } catch (error) {
     console.error("Error submitting order:", error);
     toast.error("Failed to submit order. Please try again.");
@@ -125,6 +134,7 @@ const handleSubmitOrder = async () => {
     setIsSubmitting(false);
   }
 };
+
 
 
   const calculateTotal = () => {
