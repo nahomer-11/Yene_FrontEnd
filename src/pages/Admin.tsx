@@ -113,7 +113,7 @@ const AddProductForm = () => {
       });
       
       // Then add variants if any
-      if (variants.length > 0) {
+      if (variants && variants.length > 0) {
         for (const variant of variants) {
           const variantData: CreateProductVariantData = {
             product: newProduct.id,
@@ -160,13 +160,13 @@ const AddProductForm = () => {
   const addVariantImageField = () => {
     setCurrentVariant({
       ...currentVariant,
-      images: [...currentVariant.images, { image_url: '' }]
+      images: [...(currentVariant.images || []), { image_url: '' }]
     });
   };
 
   // Update variant image
   const handleVariantImageChange = (index: number, value: string) => {
-    const updatedImages = [...currentVariant.images];
+    const updatedImages = [...(currentVariant.images || [])];
     updatedImages[index] = { image_url: value };
     setCurrentVariant({
       ...currentVariant,
@@ -232,7 +232,7 @@ const AddProductForm = () => {
           <h3 className="text-lg font-medium mb-4">Variants</h3>
           
           {/* List of added variants */}
-          {variants.length > 0 && (
+          {variants && variants.length > 0 && (
             <div className="mb-4">
               <h4 className="text-sm font-medium mb-2">Added Variants</h4>
               <div className="space-y-2">
@@ -242,7 +242,7 @@ const AddProductForm = () => {
                       <p className="font-medium">{variant.color} - {variant.size}</p>
                       <p className="text-sm text-muted-foreground">
                         Extra Price: {variant.extra_price} ETB | 
-                        Images: {variant.images.filter(img => img.image_url).length}
+                        Images: {(variant.images || []).filter(img => img.image_url).length}
                       </p>
                     </div>
                     <Button 
@@ -308,7 +308,7 @@ const AddProductForm = () => {
                   </Button>
                 </div>
                 <div className="space-y-2 mt-2">
-                  {currentVariant.images.map((image, idx) => (
+                  {(currentVariant.images || []).map((image, idx) => (
                     <Input
                       key={idx}
                       placeholder="Image URL"
@@ -430,7 +430,7 @@ const EditProductForm = ({ product, onClose }: { product: Product, onClose: () =
         </div>
 
         {/* Edit Existing Variants Section */}
-        {editVariants.length > 0 && (
+        {editVariants && editVariants.length > 0 && (
           <div className="border-t pt-4">
             <h3 className="text-lg font-medium mb-4">Current Variants</h3>
             <div className="space-y-3">
@@ -615,10 +615,10 @@ const OrderDetails = ({ order }: { order: AdminOrder }) => {
         <div>
           <h3 className="font-medium mb-2">Items</h3>
           <div className="border rounded-md overflow-hidden">
-            {order.items.map((item, index) => (
+            {(order.items || []).map((item, index) => (
               <div key={index} className="flex items-center p-3 border-b last:border-b-0">
                 <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden mr-4 flex-shrink-0">
-                  {item.product_variant.product?.image_url ? (
+                  {item.product_variant?.product?.image_url ? (
                     <img 
                       src={item.product_variant.product.image_url} 
                       alt={item.product_variant.product.name || 'Product'}
@@ -632,14 +632,14 @@ const OrderDetails = ({ order }: { order: AdminOrder }) => {
                 </div>
                 <div className="flex-grow">
                   <p className="font-medium">
-                    {item.product_variant.product?.name || 'Unknown Product'}
+                    {item.product_variant?.product?.name || 'Unknown Product'}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Variant: {item.product_variant.color} - {item.product_variant.size}
+                    Variant: {item.product_variant?.color || 'N/A'} - {item.product_variant?.size || 'N/A'}
                   </p>
                   <div className="flex justify-between mt-1">
-                    <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-                    <p className="text-sm font-medium">{parseFloat(item.total_price)?.toLocaleString()} ETB</p>
+                    <p className="text-sm text-muted-foreground">Quantity: {item.quantity || 0}</p>
+                    <p className="text-sm font-medium">{parseFloat(item.total_price || '0')?.toLocaleString()} ETB</p>
                   </div>
                 </div>
               </div>
@@ -730,9 +730,9 @@ const Admin = () => {
     setIsEditDialogOpen(true);
   };
 
-  // Calculate monthly sales data
+  // Calculate monthly sales data with safe array handling
   const generateMonthlySalesData = () => {
-    if (!orders || Array.isArray(orders) === false || orders.length === 0) return [];
+    if (!orders || !Array.isArray(orders) || orders.length === 0) return [];
     
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const currentDate = new Date();
@@ -754,13 +754,13 @@ const Admin = () => {
     }));
   };
 
-  const salesData = orders ? generateMonthlySalesData() : [];
+  const salesData = generateMonthlySalesData();
 
-  // Filter products by search term
-  const filteredProducts = products && Array.isArray(products) 
+  // Filter products by search term with safe array handling
+  const filteredProducts = (products && Array.isArray(products)) 
     ? products.filter(product => 
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase())
+        product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : [];
 
@@ -931,7 +931,7 @@ const Admin = () => {
                         <TableRow key={order.order_code}>
                           <TableCell>#{order.order_code}</TableCell>
                           <TableCell>{order.guest_name || order.user || 'Anonymous'}</TableCell>
-                          <TableCell>{(order.items?.length ?? 0)} items</TableCell>
+                          <TableCell>{(order.items?.length || 0)} items</TableCell>
                           <TableCell>
                             {(order.total || parseFloat(order.total_price || '0'))?.toLocaleString()} ETB
                           </TableCell>
@@ -1120,7 +1120,7 @@ const Admin = () => {
                             {order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A'}
                           </TableCell>
                           <TableCell>{order.guest_name || order.user || 'Anonymous'}</TableCell>
-                          <TableCell>{order.items.length} items</TableCell>
+                          <TableCell>{(order.items || []).length} items</TableCell>
                           <TableCell className="font-medium">
                             {(order.total || parseFloat(order.total_price || '0'))?.toLocaleString()} ETB
                           </TableCell>
