@@ -42,24 +42,24 @@ const Cart = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchCart = async () => {
-      setIsLoading(true);
-      try {
-        // Get from localStorage for now
-        const storedCart = localStorage.getItem('cart');
-        if (storedCart) {
-          setCartItems(JSON.parse(storedCart));
-        }
-      } catch (error) {
-        console.error("Error fetching cart:", error);
-        toast.error("Failed to load cart");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchCart = () => {
+    setIsLoading(true);
+    try {
+      const storedCart = localStorage.getItem('cart');
+      const parsed = storedCart ? JSON.parse(storedCart) : [];
+      setCartItems(Array.isArray(parsed) ? parsed : []);
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+      toast.error("Failed to load cart");
+      setCartItems([]); // fallback
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchCart();
-  }, []);
+  fetchCart();
+}, []);
+
 
   const updateQuantity = (id: string, newQuantity: number) => {
     if (newQuantity < 1) return;
@@ -86,30 +86,25 @@ const handleSubmitOrder = async () => {
     return;
   }
 
+  if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+    toast.error("Your cart is empty");
+    return;
+  }
+
   setIsSubmitting(true);
 
   try {
-    // 💡 Make sure cartItems is defined and an array
-    const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
-
-    if (!cartItems.length) {
-      toast.error("Your cart is empty");
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Ensure each item has either a variant or a product ID
-    const orderItems = cartItems.map(item => {
-      return item.productVariantId
+    const orderItems = cartItems.map(item =>
+      item.productVariantId
         ? {
             product_variant: item.productVariantId,
             quantity: item.quantity,
           }
         : {
-            product: item.productId, // Make sure your cart item includes productId
+            product: item.productId,
             quantity: item.quantity,
-          };
-    });
+          }
+    );
 
     const orderData = {
       delivery_eta_days: 10,
@@ -124,6 +119,7 @@ const handleSubmitOrder = async () => {
     await orderService.createOrder(orderData);
 
     localStorage.setItem('cart', JSON.stringify([]));
+    setCartItems([]);
     toast.success("Order submitted successfully");
     setIsDialogOpen(false);
     navigate('/');
@@ -134,6 +130,7 @@ const handleSubmitOrder = async () => {
     setIsSubmitting(false);
   }
 };
+
 
 
 
