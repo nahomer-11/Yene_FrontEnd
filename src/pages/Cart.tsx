@@ -117,7 +117,7 @@ const handleSubmitOrder = async () => {
     localStorage.setItem("cart", JSON.stringify([]));
     toast.success("Order submitted successfully");
     setIsDialogOpen(false);
-    navigate("/orders");
+    navigate("/");
   } catch (error) {
     console.error("Error submitting order:", error);
     toast.error("Failed to submit order. Please try again.");
