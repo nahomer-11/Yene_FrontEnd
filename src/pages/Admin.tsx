@@ -931,7 +931,7 @@ const Admin = () => {
                         <TableRow key={order.order_code}>
                           <TableCell>#{order.order_code}</TableCell>
                           <TableCell>{order.guest_name || order.user || 'Anonymous'}</TableCell>
-                          <TableCell>{order.items.length} items</TableCell>
+                          <TableCell>{(order.items?.length ?? 0)} items</TableCell>
                           <TableCell>
                             {(order.total || parseFloat(order.total_price || '0'))?.toLocaleString()} ETB
                           </TableCell>
