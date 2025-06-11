@@ -34,17 +34,17 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 // Product categories
 const productCategories = [
-  "T-shirt",
-  "Jacket",
-  "Hoodie",
-  "Leather Shoe",
-  "Sneakers",
-  "Track Suit",
-  "Suites",
-  "Shorts",
-  "Bundle",
-  "Trousers",
-  "Bags"
+  "👕 T-shirt",
+  "🧥 Jacket",
+  "🧶 Hoodie",       
+  "👞 Leather Shoe",
+  "👟 Sneakers",
+  "🎽 Track Suit",
+  "🤵 Suites",
+  "🩳 Shorts",
+  "📦 Bundle",
+  "👖 Trousers",
+  "👜 Bags"
 ];
 
 const Products = () => {
