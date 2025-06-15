@@ -105,30 +105,24 @@ const Cart = () => {
 
     setIsSubmitting(true);
 
-    try {
-      const orderItems = cartItems.map(item =>
-        item.productVariantId
-          ? {
-              product_variant: item.productVariantId,
-              quantity: item.quantity,
-            }
-          : {
-              product: item.productId,
-              quantity: item.quantity,
-            }
-      );
+  try {
+    // Always send variant IDs - even if it's the default variant
+    const orderItems = cartItems.map(item => ({
+      product: item.productVariantId, // Always use variant ID
+      quantity: item.quantity,
+    }));
 
-      const orderData = {
-        delivery_eta_days: 10,
-        customer_note: customerNote || "50% advance payment",
-        guest_name: guestName,
-        guest_phone: guestPhone,
-        guest_city: guestCity,
-        guest_address: guestAddress,
-        items: orderItems,
-      };
+    const orderData = {
+      delivery_eta_days: 10,
+      customer_note: customerNote || "50% advance payment",
+      guest_name: guestName,
+      guest_phone: guestPhone,
+      guest_city: guestCity,
+      guest_address: guestAddress,
+      items: orderItems,
+    };
 
-      await orderService.createOrder(orderData);
+    await orderService.createOrder(orderData);
 
       localStorage.setItem('cart', JSON.stringify([]));
       setCartItems([]);
