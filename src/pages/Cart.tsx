@@ -106,12 +106,6 @@ const Cart = () => {
     setIsSubmitting(true);
 
   try {
-    // Always send variant IDs with proper key name
-    const orderItems = cartItems.map(item => ({
-      variant_id: item.productVariantId,  // Changed key to variant_id
-      quantity: item.quantity,
-    }));
-
     const orderData = {
       delivery_eta_days: 10,
       customer_note: customerNote || "50% advance payment",
@@ -119,7 +113,10 @@ const Cart = () => {
       guest_phone: guestPhone,
       guest_city: guestCity,
       guest_address: guestAddress,
-      items: orderItems,
+      items: cartItems.map(item => ({
+        variant_id: item.productVariantId,  // Directly use variant_id
+        quantity: item.quantity,
+      })),
     };
 
     await orderService.createOrder(orderData);
