@@ -106,9 +106,9 @@ const Cart = () => {
     setIsSubmitting(true);
 
   try {
-    // Always send variant IDs - even if it's the default variant
+    // Always send variant IDs with proper key name
     const orderItems = cartItems.map(item => ({
-      product: item.productVariantId, // Always use variant ID
+      variant_id: item.productVariantId,  // Changed key to variant_id
       quantity: item.quantity,
     }));
 
