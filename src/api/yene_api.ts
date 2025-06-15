@@ -319,17 +319,20 @@ export const productService = {
 
 // Order Service
 export const orderService = {
-  // Create new order
   createOrder: async (orderData: CreateOrderData): Promise<Order> => {
-    const response = await apiClient.post('/orders/', orderData);
+    // Transform payload to match backend expectations
+    const transformedData = {
+      ...orderData,
+      items: orderData.items.map(item => ({
+        variant_id: item.variant_id,  // Keep variant_id
+        quantity: item.quantity
+      }))
+    };
+    
+    const response = await apiClient.post('/orders/', transformedData);
     return response.data;
   },
-
-  // Get user orders (if authenticated)
-  getUserOrders: async (): Promise<Order[]> => {
-    const response = await apiClient.get('/orders/');
-    return response.data;
-  }
+  // ... other methods ...
 };
 
 // Admin Service
