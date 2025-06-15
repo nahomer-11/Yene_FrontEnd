@@ -114,25 +114,26 @@ const Cart = () => {
       guest_city: guestCity,
       guest_address: guestAddress,
       items: cartItems.map(item => ({
-        variant_id: item.productVariantId,  // Directly use variant_id
+        variant_id: item.productVariantId,
         quantity: item.quantity,
       })),
     };
 
     await orderService.createOrder(orderData);
-
-      localStorage.setItem('cart', JSON.stringify([]));
-      setCartItems([]);
-      toast.success("Order submitted successfully");
-      setIsDialogOpen(false);
-      navigate('/');
-    } catch (error) {
-      console.error("Error submitting order:", error);
-      toast.error("Failed to submit order. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    
+    // Clear cart and show success
+    localStorage.setItem('cart', JSON.stringify([]));
+    setCartItems([]);
+    toast.success("Order submitted successfully");
+    setIsDialogOpen(false);
+    navigate('/');
+  } catch (error) {
+    console.error("Error submitting order:", error);
+    toast.error("Failed to submit order. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const calculateTotal = () => {
     // Ensure cartItems is an array before reducing
